@@ -21,6 +21,22 @@ public class AttachableTarget : MonoBehaviour
 	[SerializeField]
 	private int requiredUnitsToMove;
 
+	[Header("Interaction")]
+	[SerializeField]
+	private InteractionCategory category = InteractionCategory.Breakable;
+
+	[Tooltip("Speed with the minimum troops attached.")]
+	[SerializeField]
+	private float minMoveSpeed = 2f;
+
+	[Tooltip("Speed with every slot filled.")]
+	[SerializeField]
+	private float maxMoveSpeed = 5f;
+
+	[Tooltip("Damage multiplier for troops attacking from the front once all slots are full.")]
+	[SerializeField]
+	private float frontAttackMultiplier = 0.5f;
+
 	[Header("UI")]
 	[SerializeField]
 	private AttachPointUI uiPrefab;
@@ -61,6 +77,23 @@ public class AttachableTarget : MonoBehaviour
 	}
 
 	public TargetTeam Team => _baseTarget.Team;
+
+	// Enemies are always Hostile, whatever the Inspector says
+	public InteractionCategory Category => _baseTarget != null && _baseTarget.Team == TargetTeam.Enemy ? InteractionCategory.Hostile : category;
+
+	public float FrontAttackMultiplier => frontAttackMultiplier;
+
+	public int RequiredUnits => requiredUnitsToMove;
+
+	public bool MeetsRequirement => AttachedUnitCount >= requiredUnitsToMove;
+
+	public float GetMoveSpeed()
+	{
+		int min = Mathf.Max(1, requiredUnitsToMove);
+		int n = Mathf.Clamp(AttachedUnitCount, min, maxAttachSlots);
+		float t = maxAttachSlots > min ? (float)(n - min) / (maxAttachSlots - min) : 1f;
+		return Mathf.Lerp(minMoveSpeed, maxMoveSpeed, t);
+	}
 
 	private void Awake()
 	{

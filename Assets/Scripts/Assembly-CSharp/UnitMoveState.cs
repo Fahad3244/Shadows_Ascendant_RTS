@@ -16,8 +16,6 @@ public class UnitMoveState : UnitStateBase
 
 	private float _commitmentTimer;
 
-	private const float SCAN_INTERVAL = 0.2f;
-
 	private const float COMMITMENT_DURATION = 2f;
 
 	public UnitMoveState(UnitAgent agent)
@@ -87,7 +85,7 @@ public class UnitMoveState : UnitStateBase
 		if (_targetEntity == null)
 		{
 			_scanTimer += Time.deltaTime;
-			if (_scanTimer >= 0.2f)
+			if (_scanTimer >= _agent.scanInterval)
 			{
 				_scanTimer = 0f;
 				AttachableTarget attachableTarget = _agent.FindClosestTarget();

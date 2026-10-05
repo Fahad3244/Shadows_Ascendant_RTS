@@ -12,6 +12,9 @@ public class UnitAgent : MonoBehaviour
 
 	public LayerMask targetLayer;
 
+	[Tooltip("Seconds between auto-target scans while a unit is moving.")]
+	public float scanInterval = 0.2f;
+
 	[Header("Movement Stats")]
 	public float BaseMoveSpeed = 8f;
 
@@ -225,6 +228,8 @@ public class UnitAgent : MonoBehaviour
 			{
 				continue;
 			}
+			Health targetHealth = componentInParent.GetComponent<Health>();
+			if (targetHealth != null && targetHealth.IsDead) continue;
 			float dist = Vector3.Distance(base.transform.position, componentInParent.transform.position);
 			if (componentInParent.Team == TargetTeam.Enemy)
 			{
