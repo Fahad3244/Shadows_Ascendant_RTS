@@ -91,6 +91,8 @@ public class SwarmController : MonoBehaviour
 
 	private NavMeshAgent _objectNavAgent;
 
+	private MovableObject _objectMovable;
+
 	private bool _isRecordingDelayCommand;
 
 	private Camera _mainCamera;
@@ -526,6 +528,7 @@ public class SwarmController : MonoBehaviour
 	private void HandleObjectReadyToMove(GameObject objToMove)
 	{
 		_objectBeingMoved = objToMove;
+		_objectMovable = objToMove != null ? objToMove.GetComponent<MovableObject>() : null;
 		if (_objectBeingMoved != null)
 		{
 			_objectNavAgent = _objectBeingMoved.GetComponent<NavMeshAgent>();
@@ -533,11 +536,14 @@ public class SwarmController : MonoBehaviour
 			{
 				_objectNavAgent = _objectBeingMoved.AddComponent<NavMeshAgent>();
 			}
-			_objectNavAgent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
-			_objectNavAgent.speed = objectSweepSpeed;
-			_objectNavAgent.acceleration = 4f;
-			_objectNavAgent.angularSpeed = 100f;
-			_objectNavAgent.autoBraking = true;
+			if (_objectMovable == null)
+			{
+				_objectNavAgent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
+				_objectNavAgent.speed = objectSweepSpeed;
+				_objectNavAgent.acceleration = 4f;
+				_objectNavAgent.angularSpeed = 100f;
+				_objectNavAgent.autoBraking = true;
+			}
 		}
 		else
 		{
@@ -641,7 +647,7 @@ public class SwarmController : MonoBehaviour
 		{
 			return;
 		}
-		if (_objectNavAgent != null)
+		if (_objectNavAgent != null && _objectMovable == null)
 		{
 			if (_objectNavAgent.isOnNavMesh)
 			{
@@ -653,6 +659,7 @@ public class SwarmController : MonoBehaviour
 		GlobalEvents.OnBuildingPlaced.Invoke(_objectBeingMoved);
 		_objectBeingMoved = null;
 		_objectNavAgent = null;
+		_objectMovable = null;
 	}
 
 	private void UpdateSweepTargetAndDirectUnits()
@@ -703,6 +710,11 @@ public class SwarmController : MonoBehaviour
 	{
 		if (_objectBeingMoved != null && _objectNavAgent != null)
 		{
+			if (_objectMovable != null)
+			{
+				_objectMovable.ManualMove(targetPos);
+				return;
+			}
 			if (_objectNavAgent.isActiveAndEnabled && _objectNavAgent.isOnNavMesh)
 			{
 				_objectNavAgent.MoveTo(targetPos, objectSweepSpeed);

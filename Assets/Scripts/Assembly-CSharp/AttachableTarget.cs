@@ -73,7 +73,17 @@ public class AttachableTarget : MonoBehaviour
 
 	private bool _hasTakenDamage;
 
-	public int AvailableSlots => maxAttachSlots - (_attachedUnits.Count + _incomingUnits.Count);
+	private string _lastLabel;
+
+	public bool IsLocked { get; private set; }
+
+	public void SetLocked(bool locked)
+	{
+		IsLocked = locked;
+		UpdateUI();
+	}
+
+	public int AvailableSlots => IsLocked ? 0 : maxAttachSlots - (_attachedUnits.Count + _incomingUnits.Count);
 
 	public float AttachRadius => attachRadius;
 
@@ -140,12 +150,15 @@ public class AttachableTarget : MonoBehaviour
 		if (uiPrefab != null)
 		{
 			_uiInstance = UnityEngine.Object.Instantiate(uiPrefab, base.transform.position + uiOffset, Quaternion.identity, base.transform);
+			_lastLabel = null;
 			UpdateUI();
 		}
 	}
 
 	private void Update()
 	{
+		PruneInvalid();
+		UpdateUI();
 		HandleVisibilityRules();
 	}
 
@@ -278,11 +291,69 @@ public class AttachableTarget : MonoBehaviour
 		return null;
 	}
 
+	private void PruneInvalid()
+	{
+		_attachedUnits.RemoveAll(a => a == null || !a.gameObject.activeInHierarchy);
+		_incomingUnits.RemoveWhere(a => a == null || !a.gameObject.activeInHierarchy);
+		for (int i = _frontUnits.Count - 1; i >= 0; i--)
+		{
+			UnitAgent a = _frontUnits[i];
+			if (a == null || !a.gameObject.activeInHierarchy)
+			{
+				_frontUnits.RemoveAt(i);
+				if ((object)a != null)
+				{
+					_frontSlotIndex.Remove(a);
+				}
+			}
+		}
+	}
+
 	private void UpdateUI()
 	{
-		if ((bool)_uiInstance)
+		if (!_uiInstance)
+		{
+			return;
+		}
+		string label;
+		Color color;
+		if (IsLocked)
+		{
+			label = "Placed";
+			color = Color.cyan;
+		}
+		else if (requiredUnitsToMove > 0)
+		{
+			label = _incomingUnits.Count > 0
+				? $"{AttachedUnitCount}/{requiredUnitsToMove} (+{_incomingUnits.Count})"
+				: $"{AttachedUnitCount}/{requiredUnitsToMove}";
+			color = MeetsRequirement ? Color.green : Color.white;
+		}
+		else
 		{
 			_uiInstance.UpdateCount(AvailableSlots);
+			return;
+		}
+		if (label == _lastLabel)
+		{
+			return;
+		}
+		_lastLabel = label;
+		_uiInstance.SetText(label, color);
+	}
+
+	public void ReleaseAllUnits()
+	{
+		List<UnitAgent> all = new List<UnitAgent>(_attachedUnits);
+		all.AddRange(_incomingUnits);
+		all.AddRange(_frontUnits);
+		foreach (UnitAgent a in all)
+		{
+			CancelReservation(a);
+			if (a != null)
+			{
+				a.ReturnToPlayer();
+			}
 		}
 	}
 

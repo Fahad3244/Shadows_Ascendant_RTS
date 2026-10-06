@@ -22,6 +22,11 @@ public class Waypoint : MonoBehaviour
 		return result;
 	}
 
+	public static Waypoint NearestPlayerOwned(Vector3 position)
+	{
+		return NearestOwned(position, WaypointOwner.Player);
+	}
+
 	public static Waypoint NearestOwned(Vector3 position, WaypointOwner wantedOwner)
 	{
 		Waypoint result = null;

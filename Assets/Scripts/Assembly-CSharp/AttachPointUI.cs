@@ -42,6 +42,15 @@ public class AttachPointUI : MonoBehaviour
 		}
 	}
 
+	public void SetText(string text, Color color)
+	{
+		if (countText)
+		{
+			countText.text = text;
+			countText.color = color;
+		}
+	}
+
 	public void UpdateCount(int availableSlots)
 	{
 		if (countText)
