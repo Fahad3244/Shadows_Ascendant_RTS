@@ -53,6 +53,8 @@ public class UnitAgent : MonoBehaviour
 
 	public GuardFlag CurrentGuardFlag { get; private set; }
 
+	public PickupItem CarriedPickup { get; set; }
+
 	public bool IsReturning => CurrentStateEnum == UnitState.Returning;
 
 	public void Initialize(Unit data, UnitType type, PlayerUnitManager manager, UnitPool pool, Transform player)
@@ -153,6 +155,11 @@ public class UnitAgent : MonoBehaviour
 
 	public void Despawn()
 	{
+		if (CarriedPickup != null)
+		{
+			CarriedPickup.Deliver();
+			CarriedPickup = null;
+		}
 		Manager.ReturnUnit(InternalData);
 		Pool.ReturnAgent(this);
 	}
@@ -173,6 +180,17 @@ public class UnitAgent : MonoBehaviour
 
 	public void OnAttachedToTarget(AttachableTarget target)
 	{
+		PickupItem pickup = target.GetComponent<PickupItem>();
+		if (pickup != null)
+		{
+			target.CancelReservation(this);
+			if (pickup.TryCollect(this))
+			{
+				CarriedPickup = pickup;
+			}
+			ReturnToPlayer();
+			return;
+		}
 		if (target.GetComponent<ResourceSource>() != null)
 		{
 			target.CancelReservation(this);
@@ -251,7 +269,15 @@ public class UnitAgent : MonoBehaviour
 	private void HandleDeath()
 	{
 		ClearReservation();
-		if (Pool != null) Pool.ActiveAgents.Remove(this);
+		if (CarriedPickup != null)
+		{
+			CarriedPickup.Drop(transform.position);
+			CarriedPickup = null;
+		}
+		if (Pool != null)
+		{
+			Pool.ActiveAgents.Remove(this);
+		}
 		Manager.ProcessUnitDeath(this);
 		ChangeState(UnitState.Dead);
 		PlayDeathEffect();

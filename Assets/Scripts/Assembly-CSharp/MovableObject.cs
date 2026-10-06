@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Events;
 
 [RequireComponent(typeof(AttachableTarget))]
 [RequireComponent(typeof(NavMeshAgent))]
@@ -40,9 +41,16 @@ public class MovableObject : MonoBehaviour
 	[SerializeField]
 	private float manualSpeedMultiplier = 1.5f;
 
-	[Header("Debug")]
+	[Header("Retrievable (optional)")]
+	[Tooltip("If set, the object is carried here instead of the nearest waypoint.")]
 	[SerializeField]
-	private CarryState state;
+	private Transform fixedDestination;
+
+	[SerializeField]
+	private bool destroyOnDelivery;
+
+	[SerializeField]
+	private UnityEvent onDelivered;
 
 	private AttachableTarget _attach;
 
@@ -55,6 +63,10 @@ public class MovableObject : MonoBehaviour
 	private float _manualUntil;
 
 	private bool _delivered;
+
+	[Header("Debug")]
+	[SerializeField]
+	private CarryState state;
 
 	public CarryState State => state;
 
@@ -120,19 +132,27 @@ public class MovableObject : MonoBehaviour
 			state = CarryState.Delivered;
 			return;
 		}
-		_repathTimer -= Time.deltaTime;
-		if (_repathTimer <= 0f || _targetWaypoint == null)
+		Vector3 dest;
+		if (fixedDestination != null)
 		{
-			_repathTimer = repathInterval;
-			_targetWaypoint = Waypoint.NearestPlayerOwned(transform.position);
+			dest = fixedDestination.position;
 		}
-		if (_targetWaypoint == null)
+		else
 		{
-			Halt();
-			state = CarryState.NoWaypoint;
-			return;
+			_repathTimer -= Time.deltaTime;
+			if (_repathTimer <= 0f || _targetWaypoint == null)
+			{
+				_repathTimer = repathInterval;
+				_targetWaypoint = Waypoint.NearestPlayerOwned(transform.position);
+			}
+			if (_targetWaypoint == null)
+			{
+				Halt();
+				state = CarryState.NoWaypoint;
+				return;
+			}
+			dest = _targetWaypoint.transform.position;
 		}
-		Vector3 dest = _targetWaypoint.transform.position;
 		Vector3 flat = dest - transform.position;
 		flat.y = 0f;
 		if (flat.magnitude <= arriveDistance)
@@ -157,9 +177,15 @@ public class MovableObject : MonoBehaviour
 		_delivered = true;
 		state = CarryState.Delivered;
 		Halt();
-		Debug.Log($"[Movable] {name} delivered to {_targetWaypoint.name}");
+		string where = fixedDestination != null ? fixedDestination.name : _targetWaypoint?.name ?? "destination";
+		Debug.Log($"[Movable] {name} delivered to {where}");
 		_attach.ReleaseAllUnits();
 		_attach.SetLocked(true);
+		onDelivered.Invoke();
+		if (destroyOnDelivery)
+		{
+			Destroy(gameObject);
+		}
 	}
 
 	private void Halt()
