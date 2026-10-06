@@ -65,7 +65,7 @@ public class UnitGuardState : UnitStateBase
 		for (int i = 0; i < array2.Length; i++)
 		{
 			AttachableTarget componentInParent = array2[i].GetComponentInParent<AttachableTarget>();
-			if (componentInParent != null && componentInParent.Team == TargetTeam.Enemy && componentInParent.HasFreeSlots)
+			if (componentInParent != null && componentInParent.Team == TargetTeam.Enemy && componentInParent.CanBeEngaged)
 			{
 				float num2 = Vector3.Distance(_agent.transform.position, componentInParent.transform.position);
 				if (num2 < num)

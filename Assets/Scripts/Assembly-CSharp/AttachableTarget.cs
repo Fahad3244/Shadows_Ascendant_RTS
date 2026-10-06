@@ -37,6 +37,17 @@ public class AttachableTarget : MonoBehaviour
 	[SerializeField]
 	private float frontAttackMultiplier = 0.5f;
 
+	[Header("Front Attack (Hostiles only)")]
+	[SerializeField]
+	private int maxFrontAttackers = 4;
+
+	[SerializeField]
+	private float frontRadius = 2.5f;
+
+	[Tooltip("Total spread angle of the front arc, in degrees.")]
+	[SerializeField]
+	private float frontArcAngle = 90f;
+
 	[Header("UI")]
 	[SerializeField]
 	private AttachPointUI uiPrefab;
@@ -45,6 +56,12 @@ public class AttachableTarget : MonoBehaviour
 	private Vector3 uiOffset = new Vector3(0f, 2f, 0f);
 
 	private List<UnitAgent> _attachedUnits = new List<UnitAgent>();
+
+	private List<UnitAgent> _frontUnits = new List<UnitAgent>();
+
+	private Dictionary<UnitAgent, int> _frontSlotIndex = new Dictionary<UnitAgent, int>();
+
+	private Vector3 _frontAnchorDir;
 
 	private HashSet<UnitAgent> _incomingUnits = new HashSet<UnitAgent>();
 
@@ -86,6 +103,27 @@ public class AttachableTarget : MonoBehaviour
 	public int RequiredUnits => requiredUnitsToMove;
 
 	public bool MeetsRequirement => AttachedUnitCount >= requiredUnitsToMove;
+
+	public float FrontRadius => frontRadius;
+
+	public bool CanJoinFront => Category == InteractionCategory.Hostile && _frontUnits.Count < maxFrontAttackers;
+
+	public bool CanBeEngaged => HasFreeSlots || CanJoinFront;
+
+	public bool IsFrontAttacker(UnitAgent agent) => _frontUnits.Contains(agent);
+
+	public bool TryPromoteFront(UnitAgent agent)
+	{
+		if (!_frontUnits.Contains(agent) || !HasFreeSlots)
+		{
+			return false;
+		}
+		_frontUnits.Remove(agent);
+		_frontSlotIndex.Remove(agent);
+		_attachedUnits.Add(agent);
+		UpdateUI();
+		return true;
+	}
 
 	public float GetMoveSpeed()
 	{
@@ -129,11 +167,34 @@ public class AttachableTarget : MonoBehaviour
 			UpdateUI();
 			return true;
 		}
+		if (CanJoinFront)
+		{
+			if (_frontUnits.Count == 0)
+			{
+				// Lock the arc direction toward where the first front troop arrived from
+				Vector3 d = agent.transform.position - transform.position;
+				d.y = 0f;
+				_frontAnchorDir = d.sqrMagnitude > 0.01f ? d.normalized : transform.forward;
+			}
+			int idx = 0;
+			while (_frontSlotIndex.ContainsValue(idx))
+			{
+				idx++;
+			}
+			_frontSlotIndex[agent] = idx;
+			_frontUnits.Add(agent);
+			return true;
+		}
 		return false;
 	}
 
 	public void ConfirmAttach(UnitAgent agent)
 	{
+		if (_frontUnits.Contains(agent))
+		{
+			agent.OnAttachedToTarget(this);
+			return;
+		}
 		if (_incomingUnits.Contains(agent))
 		{
 			_incomingUnits.Remove(agent);
@@ -157,6 +218,11 @@ public class AttachableTarget : MonoBehaviour
 			_attachedUnits.Remove(agent);
 			flag = true;
 			CheckMoveState();
+		}
+		else if (_frontUnits.Remove(agent))
+		{
+			_frontSlotIndex.Remove(agent);
+			flag = true;
 		}
 		if (flag)
 		{
@@ -182,6 +248,13 @@ public class AttachableTarget : MonoBehaviour
 	public Vector3 GetAttachmentPosition(UnitAgent agent)
 	{
 		int num = _attachedUnits.IndexOf(agent);
+		if (num == -1 && _frontSlotIndex.TryGetValue(agent, out int frontSlot))
+		{
+			float t = maxFrontAttackers > 1 ? (float)frontSlot / (maxFrontAttackers - 1) : 0.5f;
+			float angle = Mathf.Lerp(-frontArcAngle * 0.5f, frontArcAngle * 0.5f, t);
+			Vector3 dir = Quaternion.Euler(0f, angle, 0f) * _frontAnchorDir;
+			return transform.position + dir * frontRadius + Vector3.up * attachPointHeight;
+		}
 		if (num == -1)
 		{
 			return base.transform.position;
@@ -229,6 +302,10 @@ public class AttachableTarget : MonoBehaviour
 		foreach (UnitAgent agent2 in array)
 		{
 			CancelReservation(agent2);
+		}
+		foreach (UnitAgent agent3 in _frontUnits.ToArray())
+		{
+			CancelReservation(agent3);
 		}
 	}
 

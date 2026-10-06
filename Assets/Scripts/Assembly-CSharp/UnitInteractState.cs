@@ -71,6 +71,10 @@ public class UnitInteractState : UnitStateBase
 			_agent.ReturnToPlayer();
 			return;
 		}
+		if (_target.IsFrontAttacker(_agent) && _target.TryPromoteFront(_agent))
+		{
+			_isInSlot = false;
+		}
 		Vector3 attachmentPosition = _target.GetAttachmentPosition(_agent);
 		bool isRangedVsEnemy = _agent.Type == UnitType.Ranged && targetTeam == TargetTeam.Enemy;
 		if (isRangedVsEnemy)
@@ -122,8 +126,7 @@ public class UnitInteractState : UnitStateBase
 		{
 			if (Vector3.Distance(_agent.transform.position, attachmentPosition) > 0.05f)
 			{
-				Vector3 normalized = (attachmentPosition - _agent.transform.position).normalized;
-				_agent.transform.position += normalized * (10f * Time.deltaTime);
+				_agent.transform.position = Vector3.MoveTowards(_agent.transform.position, attachmentPosition, 10f * Time.deltaTime);
 			}
 			else
 			{
@@ -133,15 +136,16 @@ public class UnitInteractState : UnitStateBase
 		if (_isInSlot)
 		{
 			_agent.transform.position = attachmentPosition;
-			if (component != null && !component.IsDead && CombatValidation.IsValidTarget(component, TargetTeam.Friendly, targetTeam))
+			if (component != null && !component.IsDead && _target.MeetsRequirement && CombatValidation.IsValidTarget(component, TargetTeam.Friendly, targetTeam))
 			{
 				_interactTimer += Time.deltaTime;
 				if (_interactTimer >= 1f)
 				{
 					_interactTimer = 0f;
+					float mult = _target.IsFrontAttacker(_agent) ? _target.FrontAttackMultiplier : 1f;
 					DamageInfo info = new DamageInfo
 					{
-						amount = 10f,
+						amount = 10f * mult,
 						attackerReference = _agent.transform,
 						type = DamageType.Normal
 					};

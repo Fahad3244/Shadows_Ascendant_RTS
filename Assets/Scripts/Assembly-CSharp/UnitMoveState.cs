@@ -54,6 +54,10 @@ public class UnitMoveState : UnitStateBase
 			SetDestination(target.transform.position);
 			_targetEntity = target;
 			float stoppingDistance = target.AttachRadius - 0.2f;
+			if (target.IsFrontAttacker(_agent))
+			{
+				stoppingDistance = target.FrontRadius + 0.3f;
+			}
 			if (_agent.Type == UnitType.Ranged && target.Team == TargetTeam.Enemy)
 			{
 				stoppingDistance = 6f;

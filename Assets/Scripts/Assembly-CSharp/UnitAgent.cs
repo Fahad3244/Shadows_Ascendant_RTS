@@ -224,7 +224,7 @@ public class UnitAgent : MonoBehaviour
 		for (int i = 0; i < array.Length; i++)
 		{
 			AttachableTarget componentInParent = array[i].GetComponentInParent<AttachableTarget>();
-			if (componentInParent == null || !componentInParent.HasFreeSlots)
+			if (componentInParent == null || !componentInParent.CanBeEngaged)
 			{
 				continue;
 			}

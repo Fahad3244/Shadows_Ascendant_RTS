@@ -327,10 +327,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9902832cf861c8a8af2ed6ee091dda0f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxAttachSlots: 3
+  maxAttachSlots: 5
   attachRadius: 1.5
   attachPointHeight: 0.75
   requiredUnitsToMove: 0
+  category: 2
+  minMoveSpeed: 2
+  maxMoveSpeed: 5
+  frontAttackMultiplier: 0.5
+  maxFrontAttackers: 4
+  frontRadius: 2.5
+  frontArcAngle: 90
   uiPrefab: {fileID: 114703437598541787, guid: 03ac48682d68d27499ac427467be48cc, type: 3}
   uiOffset: {x: 0, y: 2, z: 0}
 --- !u!136 &4173483056659595421
@@ -409,6 +416,8 @@ MonoBehaviour:
   flashDuration: 0.3
   damageNumberPrefab: {fileID: 114703437598541787, guid: 1643ae061a5334f4681ede37ccfc973b, type: 3}
   numberOffset: {x: 0, y: 2, z: 0}
+  punchScaleAmount: 0.8
+  punchDuration: 0.15
 --- !u!1 &1571767277218277369
 GameObject:
   m_ObjectHideFlags: 0
