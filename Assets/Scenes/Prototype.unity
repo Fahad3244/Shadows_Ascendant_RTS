@@ -13295,6 +13295,63 @@ Canvas:
   m_SortingLayerID: 0
   m_SortingOrder: 0
   m_TargetDisplay: 0
+--- !u!1 &1922073241
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1922073243}
+  - component: {fileID: 1922073242}
+  m_Layer: 0
+  m_Name: PickupFeedback
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1922073242
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1922073241}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c0ebd37850ac71488fdc40ce29d6c5b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickupFeedbackUI
+  target: {fileID: 296}
+  headOffset: {x: 0, y: 2, z: 0}
+  stackSpacing: 0.9
+  floatDistance: 1
+  duration: 1
+  popInDuration: 0.25
+  startScale: 0.4
+  fadeStart: 0.6
+  format: +{0} {1}
+  fontSize: 2.5
+  goldColor: {r: 1, g: 0.85, b: 0.2, a: 1}
+  gearColor: {r: 0.4, g: 0.8, b: 1, a: 1}
+  potionColor: {r: 0.4, g: 1, b: 0.5, a: 1}
+--- !u!4 &1922073243
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1922073241}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 3.23954, y: 1.1459, z: 37.31}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1925900806
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13910,6 +13967,7 @@ SceneRoots:
   - {fileID: 311}
   - {fileID: 317}
   - {fileID: 319}
+  - {fileID: 1922073243}
   - {fileID: 322}
   - {fileID: 341}
   - {fileID: 378}
