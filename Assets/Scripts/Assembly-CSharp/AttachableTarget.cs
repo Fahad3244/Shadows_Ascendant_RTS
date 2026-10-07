@@ -69,6 +69,8 @@ public class AttachableTarget : MonoBehaviour
 
 	private TargetableEntity _baseTarget;
 
+	private Health _health;
+
 	private PlayerTargetingManager _ptm;
 
 	private bool _hasTakenDamage;
@@ -76,6 +78,8 @@ public class AttachableTarget : MonoBehaviour
 	private string _lastLabel;
 
 	public bool IsLocked { get; private set; }
+
+	public bool IsInteractable => isActiveAndEnabled && !IsLocked && (_health == null || !_health.IsDead);
 
 	public void SetLocked(bool locked)
 	{
@@ -146,6 +150,7 @@ public class AttachableTarget : MonoBehaviour
 	private void Awake()
 	{
 		_baseTarget = GetComponent<TargetableEntity>();
+		_health = GetComponent<Health>();
 		_ptm = UnityEngine.Object.FindObjectOfType<PlayerTargetingManager>();
 		if (uiPrefab != null)
 		{

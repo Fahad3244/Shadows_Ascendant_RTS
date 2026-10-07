@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.AI;
 
 public class UnitMoveState : UnitStateBase
 {
@@ -15,6 +16,10 @@ public class UnitMoveState : UnitStateBase
 	private float _scanTimer;
 
 	private float _commitmentTimer;
+
+	private float _arrivePauseTimer = -1f;
+
+	private float _blockedTimer = -1f;
 
 	private const float COMMITMENT_DURATION = 2f;
 
@@ -38,6 +43,8 @@ public class UnitMoveState : UnitStateBase
 		_targetPos = pos;
 		_targetEntity = null;
 		_hasRequestedAttach = false;
+		_arrivePauseTimer = -1f;
+		_blockedTimer = -1f;
 		_agent.NavAgent.stoppingDistance = 0.5f;
 		if (_agent.NavAgent.isOnNavMesh)
 		{
@@ -73,6 +80,8 @@ public class UnitMoveState : UnitStateBase
 		_hasRequestedAttach = false;
 		_scanTimer = 0f;
 		_commitmentTimer = 2f;
+		_arrivePauseTimer = -1f;
+		_blockedTimer = -1f;
 	}
 
 	public override void Update()
@@ -81,9 +90,10 @@ public class UnitMoveState : UnitStateBase
 		{
 			_commitmentTimer -= Time.deltaTime;
 		}
-		if (_targetEntity != null && _targetEntity.gameObject == null)
+		if ((object)_targetEntity != null && (_targetEntity == null || !_targetEntity.IsInteractable))
 		{
-			_agent.ReturnToPlayer();
+			_targetEntity = null;
+			_agent.ReacquireOrReturn();
 			return;
 		}
 		if (_targetEntity == null)
@@ -103,6 +113,16 @@ public class UnitMoveState : UnitStateBase
 		}
 		if (!_agent.NavAgent.pathPending && _agent.NavAgent.remainingDistance <= _agent.NavAgent.stoppingDistance)
 		{
+			if (_targetEntity != null ? !CanAttachFromHere() : IsPathBlocked())
+			{
+				_blockedTimer = _blockedTimer < 0f ? _agent.arrivePauseTime : _blockedTimer - Time.deltaTime;
+				if (_blockedTimer <= 0f)
+				{
+					Debug.Log($"[Blocked] {_agent.name} cannot reach destination, returning");
+					_agent.ReturnToPlayer();
+				}
+				return;
+			}
 			if (_targetEntity != null)
 			{
 				if (!_hasRequestedAttach)
@@ -116,9 +136,10 @@ public class UnitMoveState : UnitStateBase
 					_agent.transform.rotation = Quaternion.LookRotation(normalized);
 				}
 			}
-			else if (!(_commitmentTimer > 0f))
+			else
 			{
-				_agent.ReturnToPlayer();
+				_arrivePauseTimer = _arrivePauseTimer < 0f ? _agent.arrivePauseTime : _arrivePauseTimer - Time.deltaTime;
+				if (_arrivePauseTimer <= 0f) _agent.ReturnToPlayer();
 			}
 		}
 		else
@@ -137,5 +158,31 @@ public class UnitMoveState : UnitStateBase
 		_speedOverride = null;
 		_accelOverride = null;
 		_agent.ApplyMovementDynamics();
+	}
+
+	private bool IsPathBlocked()
+	{
+		NavMeshAgent nav = _agent.NavAgent;
+		if (nav.pathStatus != NavMeshPathStatus.PathPartial) return false;
+		Vector3 d = nav.destination - _agent.transform.position;
+		d.y = 0f;
+		return d.magnitude > nav.stoppingDistance + _agent.blockedTolerance;
+	}
+
+	private bool CanAttachFromHere()
+	{
+		Vector3 from = _agent.transform.position;
+		Vector3 to = _targetEntity.transform.position;
+		Vector3 flat = to - from;
+		flat.y = 0f;
+		float maxDist = Mathf.Max(_agent.NavAgent.stoppingDistance, _targetEntity.AttachRadius) + _agent.blockedTolerance;
+		if (flat.magnitude > maxDist) return false;
+
+		if (NavMesh.SamplePosition(from, out NavMeshHit a, 1.5f, NavMesh.AllAreas) &&
+			NavMesh.SamplePosition(to, out NavMeshHit b, 2f, NavMesh.AllAreas))
+		{
+			return !NavMesh.Raycast(a.position, b.position, out _, NavMesh.AllAreas);
+		}
+		return true;
 	}
 }

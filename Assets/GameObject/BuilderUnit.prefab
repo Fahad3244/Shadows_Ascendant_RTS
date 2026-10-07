@@ -836,9 +836,14 @@ MonoBehaviour:
   targetLayer:
     serializedVersion: 2
     m_Bits: 192
+  scanInterval: 0.2
   BaseMoveSpeed: 20
   BaseAcceleration: 100
   LeashDistance: 20
+  targetLostPause: 0.5
+  reacquireAfterTargetLost: 1
+  arrivePauseTime: 1.5
+  blockedTolerance: 1.5
 --- !u!195 &195621510681728303
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -940,7 +945,9 @@ MonoBehaviour:
   lingerTime: 2.5
   shrinkDuration: 0.5
   deadTint: {r: 0.35, g: 0.35, b: 0.35, a: 1}
-  beaconColor: {r: 1, g: 0.1, b: 0.1, a: 0.8}
+  deadYOffset: -1
+  blinkSpeed: 5
+  blinkColor: {r: 0.9, g: 0.25, b: 0.2, a: 1}
 --- !u!1 &1709867586078768
 GameObject:
   m_ObjectHideFlags: 0

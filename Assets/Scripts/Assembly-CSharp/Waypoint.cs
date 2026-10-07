@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.AI;
 
 public class Waypoint : MonoBehaviour
 {
@@ -45,6 +46,30 @@ public class Waypoint : MonoBehaviour
 			}
 		}
 		return result;
+	}
+
+	public static bool AnyPlayerOwned()
+	{
+		foreach (Waypoint w in Object.FindObjectsOfType<Waypoint>())
+			if (w.owner == WaypointOwner.Player) return true;
+		return false;
+	}
+
+	public static Waypoint NearestReachablePlayerOwned(Vector3 from)
+	{
+		NavMeshPath path = new NavMeshPath();
+		Waypoint best = null;
+		float bestLen = float.MaxValue;
+		foreach (Waypoint w in Object.FindObjectsOfType<Waypoint>())
+		{
+			if (w.owner != WaypointOwner.Player) continue;
+			if (!NavMesh.SamplePosition(w.transform.position, out NavMeshHit hit, 3f, NavMesh.AllAreas)) continue;
+			if (!NavMesh.CalculatePath(from, hit.position, NavMesh.AllAreas, path) || path.status != NavMeshPathStatus.PathComplete) continue;
+			float len = 0f;
+			for (int i = 1; i < path.corners.Length; i++) len += Vector3.Distance(path.corners[i - 1], path.corners[i]);
+			if (len < bestLen) { bestLen = len; best = w; }
+		}
+		return best;
 	}
 }
 

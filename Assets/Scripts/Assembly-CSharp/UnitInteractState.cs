@@ -18,6 +18,10 @@ public class UnitInteractState : UnitStateBase
 
 	private bool _hasRangedHoldPosition;
 
+	private float _lostTimer;
+
+	private bool _targetLost;
+
 	private const float ATTACK_INTERVAL = 1f;
 
 	private const float UNIT_DAMAGE = 10f;
@@ -44,6 +48,7 @@ public class UnitInteractState : UnitStateBase
 		_target = target;
 		_isInSlot = false;
 		_hasRangedHoldPosition = false;
+		_targetLost = false;
 		_rangedTooCloseTimer = 0f;
 		_currentReactDelay = UnityEngine.Random.Range(RANGED_REACT_DELAY_MIN, RANGED_REACT_DELAY_MAX);
 	}
@@ -58,9 +63,15 @@ public class UnitInteractState : UnitStateBase
 
 	public override void Update()
 	{
-		if (_target == null || _target.gameObject == null)
+		if (_targetLost)
 		{
-			_agent.ReturnToPlayer();
+			_lostTimer -= Time.deltaTime;
+			if (_lostTimer <= 0f) _agent.ReacquireOrReturn();
+			return;
+		}
+		if (_target == null || !_target.IsInteractable)
+		{
+			BeginTargetLost();
 			return;
 		}
 		Health component = _target.GetComponent<Health>();
@@ -68,7 +79,7 @@ public class UnitInteractState : UnitStateBase
 		TargetTeam targetTeam = ((!(component2 != null)) ? TargetTeam.Object : component2.Team);
 		if (targetTeam == TargetTeam.Enemy && (component == null || component.IsDead || !CombatValidation.IsValidTarget(component, TargetTeam.Friendly, targetTeam)))
 		{
-			_agent.ReturnToPlayer();
+			BeginTargetLost();
 			return;
 		}
 		if (_target.IsFrontAttacker(_agent) && _target.TryPromoteFront(_agent))
@@ -163,6 +174,12 @@ public class UnitInteractState : UnitStateBase
 		{
 			_agent.transform.rotation = Quaternion.Slerp(_agent.transform.rotation, Quaternion.LookRotation(normalized2), 25f * Time.deltaTime);
 		}
+	}
+
+	private void BeginTargetLost()
+	{
+		_targetLost = true;
+		_lostTimer = _agent.targetLostPause;
 	}
 
 	public override void Exit()

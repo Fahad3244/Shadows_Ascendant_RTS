@@ -65,6 +65,9 @@ public class SwarmController : MonoBehaviour
 	private float delayCommandStartOffset = 2f;
 
 	[SerializeField]
+	private float spreadSpacing = 1.4f;
+
+	[SerializeField]
 	private LayerMask groundLayer;
 
 	[Header("Debug Visualization")]
@@ -509,9 +512,9 @@ public class SwarmController : MonoBehaviour
 		Vector3 forwardDestination = GetForwardDestination();
 		if (totalInGroup > 1)
 		{
-			float num = 1f + (float)totalInGroup * 0.15f;
-			Vector2 vector = UnityEngine.Random.insideUnitCircle * num;
-			forwardDestination += new Vector3(vector.x, 0f, vector.y);
+			float r = spreadSpacing * Mathf.Sqrt(index + 0.5f);
+			float a = index * 137.5f * Mathf.Deg2Rad;
+			forwardDestination += new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r);
 		}
 		agent.LeashDistance = sendRange;
 		agent.MoveTo(forwardDestination);

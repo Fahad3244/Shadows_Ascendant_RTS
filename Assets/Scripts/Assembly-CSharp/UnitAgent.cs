@@ -22,7 +22,22 @@ public class UnitAgent : MonoBehaviour
 
 	public float LeashDistance = 20f;
 
+	[Header("Interruption Rules")]
+	[Tooltip("Pause before reacquiring after the target disappears.")]
+	public float targetLostPause = 0.5f;
+
+	[Tooltip("Look for another target nearby when the current one is lost.")]
+	public bool reacquireAfterTargetLost = true;
+
+	[Tooltip("Pause after arriving in an empty area before returning.")]
+	public float arrivePauseTime = 1.5f;
+
+	[Tooltip("How far from the destination a partial path may end before it counts as blocked.")]
+	public float blockedTolerance = 1.5f;
+
 	private Health _health;
+
+	private NavMeshPath _reachPath;
 
 	private UnitStateBase _currentState;
 
@@ -224,10 +239,29 @@ public class UnitAgent : MonoBehaviour
 		((UnitGuardState)_states[UnitState.AtFlag]).SetFlag(flag);
 	}
 
+	public void ReacquireOrReturn()
+	{
+		ClearReservation();
+		if (reacquireAfterTargetLost)
+		{
+			AttachableTarget next = FindClosestTarget();
+			if (next != null && next.TryReserveSlot(this))
+			{
+				SetReservedTarget(next);
+				MoveToTarget(next);
+				return;
+			}
+		}
+		ReturnToPlayer();
+	}
+
 	public void ReceiveAggro(AttachableTarget enemyTarget)
 	{
-		if (CurrentStateEnum != UnitState.Interacting)
+		if (IsBusy() || CurrentStateEnum == UnitState.Sweeping || CurrentStateEnum == UnitState.Returning || CurrentStateEnum == UnitState.Dead) return;
+		if (CurrentStateEnum == UnitState.Moving && ReservedTarget != null) return;
+		if (enemyTarget.TryReserveSlot(this))
 		{
+			SetReservedTarget(enemyTarget);
 			MoveToTarget(enemyTarget);
 		}
 	}
@@ -251,14 +285,23 @@ public class UnitAgent : MonoBehaviour
 			float dist = Vector3.Distance(base.transform.position, componentInParent.transform.position);
 			if (componentInParent.Team == TargetTeam.Enemy)
 			{
-				if (dist < closestEnemyDist) { closestEnemyDist = dist; closestEnemy = componentInParent; }
+				if (dist < closestEnemyDist && CanReach(componentInParent.transform.position)) { closestEnemyDist = dist; closestEnemy = componentInParent; }
 			}
 			else if (componentInParent.Team == TargetTeam.Object)
 			{
-				if (dist < closestObjectDist) { closestObjectDist = dist; closestObject = componentInParent; }
+				if (dist < closestObjectDist && CanReach(componentInParent.transform.position)) { closestObjectDist = dist; closestObject = componentInParent; }
 			}
 		}
 		return closestEnemy != null ? closestEnemy : closestObject;
+	}
+
+	public bool CanReach(Vector3 worldPos)
+	{
+		if (NavAgent == null || !NavAgent.isOnNavMesh) return true;
+		if (!NavMesh.SamplePosition(worldPos, out NavMeshHit hit, 3f, NavMesh.AllAreas)) return false;
+		if (_reachPath == null) _reachPath = new NavMeshPath();
+		return NavMesh.CalculatePath(transform.position, hit.position, NavMesh.AllAreas, _reachPath)
+			&& _reachPath.status == NavMeshPathStatus.PathComplete;
 	}
 
 	public bool IsBusy()

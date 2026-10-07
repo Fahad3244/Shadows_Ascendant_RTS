@@ -12,7 +12,8 @@ public class MovableObject : MonoBehaviour
 		AutoCarry,
 		Manual,
 		Delivered,
-		NoWaypoint
+		NoWaypoint,
+		Blocked
 	}
 
 	[Header("Auto Carry")]
@@ -64,6 +65,10 @@ public class MovableObject : MonoBehaviour
 
 	private bool _delivered;
 
+	private bool _routeOpen;
+
+	private NavMeshPath _path;
+
 	[Header("Debug")]
 	[SerializeField]
 	private CarryState state;
@@ -78,6 +83,7 @@ public class MovableObject : MonoBehaviour
 		_agent.angularSpeed = angularSpeed;
 		_agent.stoppingDistance = 0f;
 		_agent.autoBraking = true;
+		_path = new NavMeshPath();
 	}
 
 	private void Update()
@@ -132,27 +138,32 @@ public class MovableObject : MonoBehaviour
 			state = CarryState.Delivered;
 			return;
 		}
-		Vector3 dest;
-		if (fixedDestination != null)
+		_repathTimer -= Time.deltaTime;
+		if (_repathTimer <= 0f)
 		{
-			dest = fixedDestination.position;
+			_repathTimer = repathInterval;
+			if (fixedDestination != null)
+			{
+				_targetWaypoint = null;
+				_routeOpen = IsReachable(fixedDestination.position);
+			}
+			else
+			{
+				_targetWaypoint = Waypoint.NearestReachablePlayerOwned(transform.position);
+				_routeOpen = _targetWaypoint != null;
+			}
 		}
-		else
+
+		if (fixedDestination == null && _targetWaypoint == null) _routeOpen = false;
+
+		if (!_routeOpen)
 		{
-			_repathTimer -= Time.deltaTime;
-			if (_repathTimer <= 0f || _targetWaypoint == null)
-			{
-				_repathTimer = repathInterval;
-				_targetWaypoint = Waypoint.NearestPlayerOwned(transform.position);
-			}
-			if (_targetWaypoint == null)
-			{
-				Halt();
-				state = CarryState.NoWaypoint;
-				return;
-			}
-			dest = _targetWaypoint.transform.position;
+			Halt();
+			state = (fixedDestination == null && !Waypoint.AnyPlayerOwned()) ? CarryState.NoWaypoint : CarryState.Blocked;
+			return;
 		}
+
+		Vector3 dest = fixedDestination != null ? fixedDestination.position : _targetWaypoint.transform.position;
 		Vector3 flat = dest - transform.position;
 		flat.y = 0f;
 		if (flat.magnitude <= arriveDistance)
@@ -194,5 +205,13 @@ public class MovableObject : MonoBehaviour
 		{
 			_agent.isStopped = true;
 		}
+	}
+
+	private bool IsReachable(Vector3 dest)
+	{
+		if (!_agent.isOnNavMesh) return true;
+		if (!NavMesh.SamplePosition(dest, out NavMeshHit hit, 3f, NavMesh.AllAreas)) return false;
+		return NavMesh.CalculatePath(transform.position, hit.position, NavMesh.AllAreas, _path)
+			&& _path.status == NavMeshPathStatus.PathComplete;
 	}
 }
