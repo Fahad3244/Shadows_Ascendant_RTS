@@ -12,7 +12,7 @@ public class UnitCarryState : UnitStateBase
 	public override void Enter()
 	{
 		_agent.NavAgent.isStopped = false;
-		_targetWaypoint = Waypoint.Nearest(_agent.transform.position);
+		_targetWaypoint = Waypoint.NearestPlayerOwned(_agent.transform.position);
 		_agent.ApplyMovementDynamics(_agent.BaseMoveSpeed * 0.5f, _agent.BaseAcceleration * 0.4f);
 	}
 
