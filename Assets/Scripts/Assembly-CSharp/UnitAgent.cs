@@ -145,14 +145,14 @@ public class UnitAgent : MonoBehaviour
 		obj.SetDestination(destination);
 	}
 
-	public void MoveToTarget(AttachableTarget target)
+	public void MoveToTarget(AttachableTarget target, bool auto = false)
 	{
 		if (ReservedTarget != target)
 		{
 			ClearReservation();
 		}
 		ChangeState(UnitState.Moving);
-		((UnitMoveState)_states[UnitState.Moving]).SetTarget(target);
+		((UnitMoveState)_states[UnitState.Moving]).SetTarget(target, auto);
 	}
 
 	public void ExecuteSweep(List<Vector3> pathNodes, ITargetable finalTarget)

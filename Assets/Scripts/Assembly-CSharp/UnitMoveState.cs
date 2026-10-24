@@ -7,6 +7,8 @@ public class UnitMoveState : UnitStateBase
 
 	private AttachableTarget _targetEntity;
 
+	private bool _targetIsAuto;
+
 	private bool _hasRequestedAttach;
 
 	private float? _speedOverride;
@@ -42,6 +44,7 @@ public class UnitMoveState : UnitStateBase
 	{
 		_targetPos = pos;
 		_targetEntity = null;
+		_targetIsAuto = false;
 		_hasRequestedAttach = false;
 		_arrivePauseTimer = -1f;
 		_blockedTimer = -1f;
@@ -52,7 +55,7 @@ public class UnitMoveState : UnitStateBase
 		}
 	}
 
-	public void SetTarget(AttachableTarget target)
+	public void SetTarget(AttachableTarget target, bool auto = false)
 	{
 		_targetEntity = target;
 		_hasRequestedAttach = false;
@@ -60,6 +63,7 @@ public class UnitMoveState : UnitStateBase
 		{
 			SetDestination(target.transform.position);
 			_targetEntity = target;
+			_targetIsAuto = auto;
 			float stoppingDistance = target.AttachRadius - 0.2f;
 			if (target.IsFrontAttacker(_agent))
 			{
@@ -96,18 +100,27 @@ public class UnitMoveState : UnitStateBase
 			_agent.ReacquireOrReturn();
 			return;
 		}
-		if (_targetEntity == null)
+		if (_targetEntity == null || (_targetIsAuto && !_hasRequestedAttach))
 		{
 			_scanTimer += Time.deltaTime;
 			if (_scanTimer >= _agent.scanInterval)
 			{
 				_scanTimer = 0f;
-				AttachableTarget attachableTarget = _agent.FindClosestTarget();
-				if (attachableTarget != null && attachableTarget.TryReserveSlot(_agent))
+				AttachableTarget found = _agent.FindClosestTarget();
+				bool isUpgrade = found != null && (_targetEntity == null ||
+					(found != _targetEntity &&
+					 found.Category == InteractionCategory.Hostile &&
+					 _targetEntity.Category != InteractionCategory.Hostile));
+				if (isUpgrade)
 				{
-					_agent.SetReservedTarget(attachableTarget);
-					_agent.MoveToTarget(attachableTarget);
-					return;
+					AttachableTarget old = _agent.ReservedTarget;
+					if (found.TryReserveSlot(_agent))
+					{
+						if (old != null) old.CancelReservation(_agent);
+						_agent.SetReservedTarget(found);
+						_agent.MoveToTarget(found, true);
+						return;
+					}
 				}
 			}
 		}
