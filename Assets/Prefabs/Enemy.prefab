@@ -998,7 +998,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   targetHealth: {fileID: 6960435264673697816}
   fillImage: {fileID: 8977733391195558051}
-  visibilityMode: 1
+  visibilityMode: 2
   hideDelay: 3
 --- !u!1 &7227522298857800928
 GameObject:

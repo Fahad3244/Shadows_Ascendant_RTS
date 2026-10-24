@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class AttachPointUI : MonoBehaviour
 {
@@ -8,6 +9,13 @@ public class AttachPointUI : MonoBehaviour
 
 	[SerializeField]
 	private Canvas canvas;
+
+	[Header("Health Bar (enemies)")]
+	[SerializeField]
+	private Image healthFill;
+
+	[SerializeField]
+	private GameObject healthBarRoot;
 
 	private Camera _mainCamera;
 
@@ -57,6 +65,22 @@ public class AttachPointUI : MonoBehaviour
 		{
 			countText.text = availableSlots.ToString();
 			countText.color = ((availableSlots == 0) ? Color.red : Color.white);
+		}
+	}
+
+	public void SetHealth01(float value)
+	{
+		if (healthFill)
+		{
+			healthFill.fillAmount = Mathf.Clamp01(value);
+		}
+	}
+
+	public void ShowHealthBar(bool show)
+	{
+		if (healthBarRoot && healthBarRoot.activeSelf != show)
+		{
+			healthBarRoot.SetActive(show);
 		}
 	}
 }

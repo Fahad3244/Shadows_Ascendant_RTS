@@ -55,6 +55,17 @@ public class AttachableTarget : MonoBehaviour
 	[SerializeField]
 	private Vector3 uiOffset = new Vector3(0f, 2f, 0f);
 
+	[Header("Attach Point UI")]
+	[SerializeField]
+	private Color requirementColor = new Color(0.6f, 0.6f, 0.6f);
+
+	[SerializeField]
+	private Color metColor = new Color(0.2f, 0.5f, 1f);
+
+	[Tooltip("Seconds the enemy symbol stays visible after the last damage or troop leaving. 0 = hide immediately.")]
+	[SerializeField]
+	private float underAttackLinger = 3f;
+
 	private List<UnitAgent> _attachedUnits = new List<UnitAgent>();
 
 	private List<UnitAgent> _frontUnits = new List<UnitAgent>();
@@ -76,6 +87,10 @@ public class AttachableTarget : MonoBehaviour
 	private bool _hasTakenDamage;
 
 	private string _lastLabel;
+
+	private float _lastDamageTime = -999f;
+
+	private float _lastHp = -1f;
 
 	public bool IsLocked { get; private set; }
 
@@ -126,6 +141,23 @@ public class AttachableTarget : MonoBehaviour
 
 	public bool IsFrontAttacker(UnitAgent agent) => _frontUnits.Contains(agent);
 
+	private bool IsUnderAttack =>
+		_attachedUnits.Count > 0 || _incomingUnits.Count > 0 || _frontUnits.Count > 0 ||
+		Time.time - _lastDamageTime < underAttackLinger;
+
+	private void TrackDamage()
+	{
+		if (_health == null)
+		{
+			return;
+		}
+		if (_lastHp >= 0f && _health.CurrentHP < _lastHp)
+		{
+			_lastDamageTime = Time.time;
+		}
+		_lastHp = _health.CurrentHP;
+	}
+
 	public bool TryPromoteFront(UnitAgent agent)
 	{
 		if (!_frontUnits.Contains(agent) || !HasFreeSlots)
@@ -163,18 +195,34 @@ public class AttachableTarget : MonoBehaviour
 	private void Update()
 	{
 		PruneInvalid();
+		TrackDamage();
 		UpdateUI();
 		HandleVisibilityRules();
 	}
 
 	private void HandleVisibilityRules()
 	{
-		if (!(_uiInstance == null))
+		if (_uiInstance == null)
 		{
-			bool flag = false;
-			flag = _baseTarget.Team == TargetTeam.Object || (_ptm != null && _ptm.CurrentTarget == _baseTarget) || _hasTakenDamage;
-			_uiInstance.SetVisibility(flag);
+			return;
 		}
+		bool isHostile = Category == InteractionCategory.Hostile;
+		bool show = true;
+		if (isHostile)
+		{
+			bool targeted = _ptm != null && _ptm.CurrentTarget == _baseTarget;
+			show = targeted || IsUnderAttack;
+			if (_health != null && _health.IsDead)
+			{
+				show = false;
+			}
+			if (_health != null && _health.MaxHP > 0f)
+			{
+				_uiInstance.SetHealth01(_health.CurrentHP / _health.MaxHP);
+			}
+		}
+		_uiInstance.ShowHealthBar(isHostile);
+		_uiInstance.SetVisibility(show);
 	}
 
 	public bool TryReserveSlot(UnitAgent agent)
@@ -322,6 +370,11 @@ public class AttachableTarget : MonoBehaviour
 		}
 		string label;
 		Color color;
+		if (Category == InteractionCategory.Hostile)
+		{
+			_uiInstance.UpdateCount(AvailableSlots);
+			return;
+		}
 		if (IsLocked)
 		{
 			label = "Placed";
@@ -329,21 +382,29 @@ public class AttachableTarget : MonoBehaviour
 		}
 		else if (requiredUnitsToMove > 0)
 		{
-			label = _incomingUnits.Count > 0
-				? $"{AttachedUnitCount}/{requiredUnitsToMove} (+{_incomingUnits.Count})"
-				: $"{AttachedUnitCount}/{requiredUnitsToMove}";
-			color = MeetsRequirement ? Color.green : Color.white;
+			int n = AttachedUnitCount;
+			if (n >= requiredUnitsToMove)
+			{
+				label = n.ToString();
+				color = metColor;
+			}
+			else
+			{
+				label = requiredUnitsToMove.ToString();
+				color = requirementColor;
+			}
 		}
 		else
 		{
 			_uiInstance.UpdateCount(AvailableSlots);
 			return;
 		}
-		if (label == _lastLabel)
+		string key = label + "|" + ColorUtility.ToHtmlStringRGB(color);
+		if (key == _lastLabel)
 		{
 			return;
 		}
-		_lastLabel = label;
+		_lastLabel = key;
 		_uiInstance.SetText(label, color);
 	}
 
