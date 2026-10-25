@@ -9,6 +9,8 @@ public class Waypoint : MonoBehaviour
 
 	public static event Action<Waypoint, WaypointOwner, WaypointOwner> OnOwnerChanged;
 
+	public static event Action<Waypoint> OnPlayerLostWaypoint;
+
 	public WaypointOwner owner = WaypointOwner.Player;
 
 	[Header("Zone")]
@@ -224,6 +226,10 @@ public class Waypoint : MonoBehaviour
 		{
 			Debug.Log($"[Waypoint] {name}: {old} -> {newOwner}");
 			Waypoint.OnOwnerChanged?.Invoke(this, old, newOwner);
+			if (old == WaypointOwner.Player && newOwner != WaypointOwner.Player)
+			{
+				Waypoint.OnPlayerLostWaypoint?.Invoke(this);
+			}
 		}
 	}
 
@@ -332,7 +338,27 @@ public class Waypoint : MonoBehaviour
 		return false;
 	}
 
-	public static Waypoint NearestReachablePlayerOwned(Vector3 from)
+	public static Waypoint FindPlayerZoneContaining(Vector3 pos)
+	{
+		Waypoint best = null;
+		float bestD = float.MaxValue;
+		foreach (Waypoint w in All)
+		{
+			if (w.owner != WaypointOwner.Player || !w.Contains(pos))
+			{
+				continue;
+			}
+			float d = (w.transform.position - pos).sqrMagnitude;
+			if (d < bestD)
+			{
+				bestD = d;
+				best = w;
+			}
+		}
+		return best;
+	}
+
+	public static Waypoint NearestReachablePlayerOwned(Vector3 from, float maxDistance = 0f)
 	{
 		NavMeshPath path = new NavMeshPath();
 		Waypoint best = null;
@@ -340,6 +366,10 @@ public class Waypoint : MonoBehaviour
 		foreach (Waypoint w in All)
 		{
 			if (w.owner != WaypointOwner.Player)
+			{
+				continue;
+			}
+			if (maxDistance > 0f && Vector3.Distance(from, w.transform.position) > maxDistance)
 			{
 				continue;
 			}

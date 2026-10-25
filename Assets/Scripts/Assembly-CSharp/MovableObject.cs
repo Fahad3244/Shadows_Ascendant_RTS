@@ -53,11 +53,36 @@ public class MovableObject : MonoBehaviour
 	[SerializeField]
 	private UnityEvent onDelivered;
 
+	[Header("Waypoint Zone")]
+	[Tooltip("Delivered when within this fraction of the zone radius from the waypoint centre (1 = edge, 0.5 = halfway).")]
+	[SerializeField]
+	[Range(0.1f, 1f)]
+	private float deliverRadiusFraction = 0.6f;
+
+	[Tooltip("Max distance to a valid waypoint for reassess/redirect. 0 = unlimited.")]
+	[SerializeField]
+	private float maxWaypointRange = 60f;
+
+	[Tooltip("Optional child shown only while Active (ring, light, glow).")]
+	[SerializeField]
+	private GameObject activeVisual;
+
+	[SerializeField]
+	private UnityEvent onActivated;
+
+	[SerializeField]
+	private UnityEvent onDeactivated;
+
+	[SerializeField]
+	private bool isActive;
+
 	private AttachableTarget _attach;
 
 	private NavMeshAgent _agent;
 
 	private Waypoint _targetWaypoint;
+
+	private Waypoint _homeWaypoint;
 
 	private float _repathTimer;
 
@@ -75,6 +100,8 @@ public class MovableObject : MonoBehaviour
 
 	public CarryState State => state;
 
+	public bool IsActive => isActive;
+
 	private void Awake()
 	{
 		_attach = GetComponent<AttachableTarget>();
@@ -84,10 +111,67 @@ public class MovableObject : MonoBehaviour
 		_agent.stoppingDistance = 0f;
 		_agent.autoBraking = true;
 		_path = new NavMeshPath();
+		if (activeVisual)
+		{
+			activeVisual.SetActive(false);
+		}
+	}
+
+	private void OnEnable()
+	{
+		Waypoint.OnPlayerLostWaypoint += HandleWaypointLost;
+	}
+
+	private void OnDisable()
+	{
+		Waypoint.OnPlayerLostWaypoint -= HandleWaypointLost;
+	}
+
+	private void HandleWaypointLost(Waypoint wp)
+	{
+		if (wp != _homeWaypoint)
+		{
+			return;
+		}
+		Debug.Log($"[Movable] {name}: lost {wp.name}, reassessing");
+		_homeWaypoint = null;
+		if (_delivered)
+		{
+			_delivered = false;
+			_attach.SetLocked(false);
+		}
+		_repathTimer = 0f;
+	}
+
+	private void UpdateActive()
+	{
+		if (fixedDestination != null)
+		{
+			return;
+		}
+		bool inside = Waypoint.FindPlayerZoneContaining(transform.position) != null;
+		if (inside == isActive)
+		{
+			return;
+		}
+		isActive = inside;
+		if (activeVisual)
+		{
+			activeVisual.SetActive(inside);
+		}
+		if (inside)
+		{
+			onActivated.Invoke();
+		}
+		else
+		{
+			onDeactivated.Invoke();
+		}
 	}
 
 	private void Update()
 	{
+		UpdateActive();
 		if (!_attach.CanBeMoved)
 		{
 			Halt();
@@ -149,8 +233,13 @@ public class MovableObject : MonoBehaviour
 			}
 			else
 			{
-				_targetWaypoint = Waypoint.NearestReachablePlayerOwned(transform.position);
+				Waypoint prev = _targetWaypoint;
+				_targetWaypoint = Waypoint.NearestReachablePlayerOwned(transform.position, maxWaypointRange);
 				_routeOpen = _targetWaypoint != null;
+				if (prev != null && _targetWaypoint != prev)
+				{
+					Debug.Log($"[Movable] {name} redirect: {prev.name} -> {((_targetWaypoint != null) ? _targetWaypoint.name : "none")}");
+				}
 			}
 		}
 
@@ -166,7 +255,8 @@ public class MovableObject : MonoBehaviour
 		Vector3 dest = fixedDestination != null ? fixedDestination.position : _targetWaypoint.transform.position;
 		Vector3 flat = dest - transform.position;
 		flat.y = 0f;
-		if (flat.magnitude <= arriveDistance)
+		float arrive = (fixedDestination == null && _targetWaypoint != null) ? Mathf.Max(arriveDistance, _targetWaypoint.ZoneRadius * deliverRadiusFraction) : arriveDistance;
+		if (flat.magnitude <= arrive)
 		{
 			Deliver();
 			return;
@@ -185,6 +275,7 @@ public class MovableObject : MonoBehaviour
 
 	private void Deliver()
 	{
+		_homeWaypoint = ((fixedDestination == null) ? _targetWaypoint : null);
 		_delivered = true;
 		state = CarryState.Delivered;
 		Halt();
