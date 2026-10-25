@@ -66,6 +66,13 @@ public class AttachableTarget : MonoBehaviour
 	[SerializeField]
 	private float underAttackLinger = 3f;
 
+	[Header("Small Breakables (set by BreakableObject)")]
+	[SerializeField]
+	private int unlimitedRingSlots = 8;
+
+	[SerializeField]
+	private float unlimitedRingSpacing = 0.8f;
+
 	private List<UnitAgent> _attachedUnits = new List<UnitAgent>();
 
 	private List<UnitAgent> _frontUnits = new List<UnitAgent>();
@@ -92,7 +99,21 @@ public class AttachableTarget : MonoBehaviour
 
 	private float _lastHp = -1f;
 
+	private bool _unlimitedSlots;
+
 	public bool IsLocked { get; private set; }
+
+	public bool IsIndestructible { get; private set; }
+
+	public void SetUnlimitedSlots(bool value)
+	{
+		_unlimitedSlots = value;
+	}
+
+	public void SetIndestructible(bool value)
+	{
+		IsIndestructible = value;
+	}
 
 	public bool IsInteractable => isActiveAndEnabled && !IsLocked && (_health == null || !_health.IsDead);
 
@@ -102,7 +123,7 @@ public class AttachableTarget : MonoBehaviour
 		UpdateUI();
 	}
 
-	public int AvailableSlots => IsLocked ? 0 : maxAttachSlots - (_attachedUnits.Count + _incomingUnits.Count);
+	public int AvailableSlots => IsLocked ? 0 : (_unlimitedSlots ? 999 : maxAttachSlots - (_attachedUnits.Count + _incomingUnits.Count));
 
 	public float AttachRadius => attachRadius;
 
@@ -186,9 +207,41 @@ public class AttachableTarget : MonoBehaviour
 		_ptm = UnityEngine.Object.FindObjectOfType<PlayerTargetingManager>();
 		if (uiPrefab != null)
 		{
-			_uiInstance = UnityEngine.Object.Instantiate(uiPrefab, base.transform.position + uiOffset, Quaternion.identity, base.transform);
+			_uiInstance = UnityEngine.Object.Instantiate(uiPrefab, base.transform.position + uiOffset, Quaternion.identity);
 			_lastLabel = null;
 			UpdateUI();
+		}
+	}
+
+	private void LateUpdate()
+	{
+		if (_uiInstance != null)
+		{
+			_uiInstance.transform.position = transform.position + uiOffset;
+		}
+	}
+
+	private void OnEnable()
+	{
+		if (_uiInstance != null)
+		{
+			_uiInstance.gameObject.SetActive(true);
+		}
+	}
+
+	private void OnDisable()
+	{
+		if (_uiInstance != null)
+		{
+			_uiInstance.gameObject.SetActive(false);
+		}
+	}
+
+	private void OnDestroy()
+	{
+		if (_uiInstance != null)
+		{
+			Destroy(_uiInstance.gameObject);
 		}
 	}
 
@@ -207,7 +260,7 @@ public class AttachableTarget : MonoBehaviour
 			return;
 		}
 		bool isHostile = Category == InteractionCategory.Hostile;
-		bool show = true;
+		bool show = !_unlimitedSlots;
 		if (isHostile)
 		{
 			bool targeted = _ptm != null && _ptm.CurrentTarget == _baseTarget;
@@ -325,6 +378,14 @@ public class AttachableTarget : MonoBehaviour
 		{
 			return base.transform.position;
 		}
+		if (_unlimitedSlots)
+		{
+			int ring = num / unlimitedRingSlots;
+			int inRing = num % unlimitedRingSlots;
+			float a = ((float)inRing * (360f / (float)unlimitedRingSlots) + (float)ring * 22.5f) * (MathF.PI / 180f);
+			float r = attachRadius + (float)ring * unlimitedRingSpacing;
+			return transform.position + new Vector3(Mathf.Sin(a), attachPointHeight, Mathf.Cos(a)) * r;
+		}
 		float num2 = 360f / (float)maxAttachSlots;
 		float f = (float)num * num2 * (MathF.PI / 180f);
 		Vector3 vector = new Vector3(Mathf.Sin(f), attachPointHeight, Mathf.Cos(f)) * attachRadius;
@@ -364,6 +425,10 @@ public class AttachableTarget : MonoBehaviour
 
 	private void UpdateUI()
 	{
+		if (_unlimitedSlots)
+		{
+			return;
+		}
 		if (!_uiInstance)
 		{
 			return;

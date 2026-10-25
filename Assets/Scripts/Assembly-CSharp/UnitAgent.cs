@@ -282,6 +282,7 @@ public class UnitAgent : MonoBehaviour
 			}
 			Health targetHealth = componentInParent.GetComponent<Health>();
 			if (targetHealth != null && targetHealth.IsDead) continue;
+			if (componentInParent.IsIndestructible) continue;
 			float dist = Vector3.Distance(base.transform.position, componentInParent.transform.position);
 			if (componentInParent.Team == TargetTeam.Enemy)
 			{

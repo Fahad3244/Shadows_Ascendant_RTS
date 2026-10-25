@@ -22,6 +22,8 @@ public class UnitInteractState : UnitStateBase
 
 	private bool _targetLost;
 
+	private bool _returnOnly;
+
 	private const float ATTACK_INTERVAL = 1f;
 
 	private const float UNIT_DAMAGE = 10f;
@@ -49,6 +51,7 @@ public class UnitInteractState : UnitStateBase
 		_isInSlot = false;
 		_hasRangedHoldPosition = false;
 		_targetLost = false;
+		_returnOnly = false;
 		_rangedTooCloseTimer = 0f;
 		_currentReactDelay = UnityEngine.Random.Range(RANGED_REACT_DELAY_MIN, RANGED_REACT_DELAY_MAX);
 	}
@@ -66,12 +69,27 @@ public class UnitInteractState : UnitStateBase
 		if (_targetLost)
 		{
 			_lostTimer -= Time.deltaTime;
-			if (_lostTimer <= 0f) _agent.ReacquireOrReturn();
+			if (_lostTimer <= 0f)
+			{
+				if (_returnOnly)
+				{
+					_agent.ReturnToPlayer();
+				}
+				else
+				{
+					_agent.ReacquireOrReturn();
+				}
+			}
 			return;
 		}
 		if (_target == null || !_target.IsInteractable)
 		{
 			BeginTargetLost();
+			return;
+		}
+		if (_target.IsIndestructible)
+		{
+			BeginTargetLost(true);
 			return;
 		}
 		Health component = _target.GetComponent<Health>();
@@ -176,10 +194,11 @@ public class UnitInteractState : UnitStateBase
 		}
 	}
 
-	private void BeginTargetLost()
+	private void BeginTargetLost(bool returnOnly = false)
 	{
 		_targetLost = true;
-		_lostTimer = _agent.targetLostPause;
+		_returnOnly = returnOnly;
+		_lostTimer = returnOnly ? _agent.arrivePauseTime : _agent.targetLostPause;
 	}
 
 	public override void Exit()

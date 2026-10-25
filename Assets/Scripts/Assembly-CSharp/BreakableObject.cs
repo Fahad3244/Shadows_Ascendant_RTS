@@ -1,9 +1,37 @@
 using UnityEngine;
+using UnityEngine.Events;
+
+public enum BreakableSize
+{
+	Small,
+	Large
+}
 
 [RequireComponent(typeof(Health))]
 [RequireComponent(typeof(AttachableTarget))]
 public class BreakableObject : MonoBehaviour
 {
+	[Header("Type")]
+	[SerializeField]
+	private BreakableSize size = BreakableSize.Small;
+
+	[SerializeField]
+	private float maxHealth = 50f;
+
+	[Tooltip("Troops cannot damage it. Auto-scan ignores it; targeted troops pause and return.")]
+	[SerializeField]
+	private bool indestructible;
+
+	[Header("Break")]
+	[SerializeField]
+	private float destroyDelay = 0f;
+
+	[SerializeField]
+	private GameObject breakEffectPrefab;
+
+	[SerializeField]
+	private UnityEvent onBroken;
+
 	private Health _health;
 
 	private AttachableTarget _attachable;
@@ -12,7 +40,9 @@ public class BreakableObject : MonoBehaviour
 	{
 		_health = GetComponent<Health>();
 		_attachable = GetComponent<AttachableTarget>();
-		_health.Initialize(50f);
+		_health.Initialize(maxHealth);
+		_attachable.SetUnlimitedSlots(size == BreakableSize.Small);
+		_attachable.SetIndestructible(indestructible);
 	}
 
 	private void OnEnable()
@@ -27,8 +57,12 @@ public class BreakableObject : MonoBehaviour
 
 	private void Break()
 	{
-		Debug.Log(base.gameObject.name + " broke!");
+		if (breakEffectPrefab)
+		{
+			Object.Instantiate(breakEffectPrefab, transform.position, transform.rotation);
+		}
 		_attachable.EjectAllUnits();
-		Object.Destroy(base.gameObject);
+		onBroken.Invoke();
+		Object.Destroy(base.gameObject, destroyDelay);
 	}
 }
