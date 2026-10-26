@@ -35,6 +35,12 @@ public class UnitAgent : MonoBehaviour
 	[Tooltip("How far from the destination a partial path may end before it counts as blocked.")]
 	public float blockedTolerance = 1.5f;
 
+	[Header("Gear")]
+	[SerializeField]
+	private Vector3 gearVisualOffset = new Vector3(0f, 2.2f, 0f);
+
+	private GameObject _gearVisual;
+
 	private Health _health;
 
 	private NavMeshPath _reachPath;
@@ -72,6 +78,50 @@ public class UnitAgent : MonoBehaviour
 
 	public bool IsReturning => CurrentStateEnum == UnitState.Returning;
 
+	public float GearDamageBonus => (InternalData != null) ? InternalData.damageBonus : 0f;
+
+	public void EquipGear(string gearName, float damageBonus, GameObject visualPrefab)
+	{
+		if (InternalData == null)
+		{
+			return;
+		}
+		InternalData.hasGear = true;
+		InternalData.gearName = gearName;
+		InternalData.damageBonus = damageBonus;
+		InternalData.gearVisualPrefab = visualPrefab;
+		RefreshGearVisual();
+	}
+
+	public void RefreshGearVisual()
+	{
+		if (_gearVisual != null)
+		{
+			Destroy(_gearVisual);
+			_gearVisual = null;
+		}
+		if (InternalData == null || !InternalData.hasGear)
+		{
+			return;
+		}
+		if (InternalData.gearVisualPrefab != null)
+		{
+			_gearVisual = Instantiate(InternalData.gearVisualPrefab, transform);
+		}
+		else
+		{
+			_gearVisual = GameObject.CreatePrimitive(PrimitiveType.Cube);
+			Destroy(_gearVisual.GetComponent<Collider>());
+			_gearVisual.transform.SetParent(transform, false);
+			_gearVisual.transform.localScale = Vector3.one * 0.35f;
+			_gearVisual.GetComponent<Renderer>().material = new Material(Shader.Find("Sprites/Default"))
+			{
+				color = Color.cyan
+			};
+		}
+		_gearVisual.transform.localPosition = gearVisualOffset;
+	}
+
 	public void Initialize(Unit data, UnitType type, PlayerUnitManager manager, UnitPool pool, Transform player)
 	{
 		InternalData = data;
@@ -84,6 +134,7 @@ public class UnitAgent : MonoBehaviour
 		_health.OnDeath.RemoveListener(HandleDeath);
 		_health.OnDeath.AddListener(HandleDeath);
 		ChangeState(UnitState.Idle);
+		RefreshGearVisual();
 	}
 
 	public void ResetHealth()

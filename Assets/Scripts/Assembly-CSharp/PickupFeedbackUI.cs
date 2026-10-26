@@ -34,6 +34,7 @@ public class PickupFeedbackUI : MonoBehaviour
     [Header("Text")]
     [Tooltip("{0} = amount, {1} = loot type")]
     [SerializeField] private string format = "+{0} {1}";
+    [SerializeField] private string equipFormat = "Equipped {0}!";
     [SerializeField] private float fontSize = 6f;
     [SerializeField] private Color goldColor = new Color(1f, 0.85f, 0.2f);
     [SerializeField] private Color gearColor = new Color(0.4f, 0.8f, 1f);
@@ -52,19 +53,38 @@ public class PickupFeedbackUI : MonoBehaviour
         }
     }
 
-    private void OnEnable()  { PickupItem.OnPickupDelivered += HandleDelivered; }
-    private void OnDisable() { PickupItem.OnPickupDelivered -= HandleDelivered; }
+    private void OnEnable()
+    {
+        PickupItem.OnPickupDelivered += HandleDelivered;
+        PickupItem.OnGearEquipped += HandleGearEquipped;
+    }
+
+    private void OnDisable()
+    {
+        PickupItem.OnPickupDelivered -= HandleDelivered;
+        PickupItem.OnGearEquipped -= HandleGearEquipped;
+    }
 
     private void HandleDelivered(LootType type, int amount)
+    {
+        ShowPopup(string.Format(format, amount, type), GetColor(type));
+    }
+
+    private void HandleGearEquipped(UnitAgent troop, PickupItem item)
+    {
+        ShowPopup(string.Format(equipFormat, item.GearName), gearColor);
+    }
+
+    private void ShowPopup(string text, Color color)
     {
         if (target == null) return;
 
         GameObject go = new GameObject("PickupPopup");
         TextMeshPro tmp = go.AddComponent<TextMeshPro>();
-        tmp.text = string.Format(format, amount, type);
+        tmp.text = text;
         tmp.fontSize = fontSize;
         tmp.alignment = TextAlignmentOptions.Center;
-        tmp.color = GetColor(type);
+        tmp.color = color;
         tmp.fontStyle = FontStyles.Bold;
         tmp.enableWordWrapping = false;
         go.transform.localScale = Vector3.one * startScale;

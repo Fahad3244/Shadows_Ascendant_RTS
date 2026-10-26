@@ -215,7 +215,7 @@ public class SwarmController : MonoBehaviour
 		List<UnitAgent> list = new List<UnitAgent>();
 		foreach (UnitAgent item in (IEnumerable<UnitAgent>)((group == GroupSelection.Custom) ? CustomGroupUnits : unitPool.ActiveAgents))
 		{
-			if (item == null || !item.gameObject.activeInHierarchy || item.CurrentStateEnum == UnitState.Dead || item.CurrentStateEnum == UnitState.AtFlag)
+			if (item == null || !item.gameObject.activeInHierarchy || item.CurrentStateEnum == UnitState.Dead || item.CurrentStateEnum == UnitState.AtFlag || item.CarriedPickup != null)
 			{
 				continue;
 			}

@@ -76,7 +76,16 @@ public class MovableObject : MonoBehaviour
 	[SerializeField]
 	private bool isActive;
 
+	[Header("Retrievable Marker")]
+	[Tooltip("Shown while the object is targeted or being carried. Make it a child of the destination object.")]
+	[SerializeField]
+	private GameObject destinationMarker;
+
 	private AttachableTarget _attach;
+
+	private PlayerTargetingManager _ptm;
+
+	private TargetableEntity _targetable;
 
 	private NavMeshAgent _agent;
 
@@ -111,6 +120,12 @@ public class MovableObject : MonoBehaviour
 		_agent.stoppingDistance = 0f;
 		_agent.autoBraking = true;
 		_path = new NavMeshPath();
+		_ptm = FindObjectOfType<PlayerTargetingManager>();
+		_targetable = GetComponent<TargetableEntity>();
+		if (destinationMarker)
+		{
+			destinationMarker.SetActive(false);
+		}
 		if (activeVisual)
 		{
 			activeVisual.SetActive(false);
@@ -143,6 +158,20 @@ public class MovableObject : MonoBehaviour
 		_repathTimer = 0f;
 	}
 
+	private void UpdateDestinationMarker()
+	{
+		if (destinationMarker == null)
+		{
+			return;
+		}
+		bool targeted = _ptm != null && _targetable != null && _ptm.CurrentTarget == (ITargetable)_targetable;
+		bool show = fixedDestination != null && !_delivered && (targeted || _attach.AttachedUnitCount > 0);
+		if (destinationMarker.activeSelf != show)
+		{
+			destinationMarker.SetActive(show);
+		}
+	}
+
 	private void UpdateActive()
 	{
 		if (fixedDestination != null)
@@ -172,6 +201,7 @@ public class MovableObject : MonoBehaviour
 	private void Update()
 	{
 		UpdateActive();
+		UpdateDestinationMarker();
 		if (!_attach.CanBeMoved)
 		{
 			Halt();

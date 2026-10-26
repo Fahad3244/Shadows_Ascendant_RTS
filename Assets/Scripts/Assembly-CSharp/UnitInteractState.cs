@@ -174,7 +174,7 @@ public class UnitInteractState : UnitStateBase
 					float mult = _target.IsFrontAttacker(_agent) ? _target.FrontAttackMultiplier : 1f;
 					DamageInfo info = new DamageInfo
 					{
-						amount = 10f * mult,
+						amount = 10f * mult * (1f + _agent.GearDamageBonus),
 						attackerReference = _agent.transform,
 						type = DamageType.Normal
 					};
