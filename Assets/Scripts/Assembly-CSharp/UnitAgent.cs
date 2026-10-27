@@ -78,6 +78,13 @@ public class UnitAgent : MonoBehaviour
 
 	public bool IsReturning => CurrentStateEnum == UnitState.Returning;
 
+	public float ScanSuppressedUntil { get; private set; }
+
+	public void SuppressScan(float seconds)
+	{
+		ScanSuppressedUntil = Time.time + seconds;
+	}
+
 	public float GearDamageBonus => (InternalData != null) ? InternalData.damageBonus : 0f;
 
 	public void EquipGear(string gearName, float damageBonus, GameObject visualPrefab)

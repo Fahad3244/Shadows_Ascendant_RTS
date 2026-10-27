@@ -20,6 +20,9 @@ public class PlayerInputManager : MonoBehaviour
 	[SerializeField]
 	private float sweepExitCooldown = 0.2f;
 
+	[SerializeField]
+	private float sweepReleaseGrace = 0.12f;
+
 	[Header("Delay Command Settings")]
 	[SerializeField]
 	private KeyCode delayModifierKey = KeyCode.LeftControl;
@@ -39,6 +42,8 @@ public class PlayerInputManager : MonoBehaviour
 	private float _sweepEntryTimer;
 
 	private float _sweepCooldownTimer;
+
+	private float _sweepReleaseTimer;
 
 	private float _delayKeyTimer;
 
@@ -213,6 +218,7 @@ public class PlayerInputManager : MonoBehaviour
 	{
 		if (Input.GetMouseButton(0) && Input.GetMouseButton(1))
 		{
+			_sweepReleaseTimer = sweepReleaseGrace;
 			_sweepEntryTimer += Time.deltaTime;
 			if (_sweepEntryTimer >= sweepBufferTime && !IsSweeping)
 			{
@@ -224,8 +230,12 @@ public class PlayerInputManager : MonoBehaviour
 			_sweepEntryTimer = 0f;
 			if (IsSweeping)
 			{
-				IsSweeping = false;
-				_sweepCooldownTimer = sweepExitCooldown;
+				_sweepReleaseTimer -= Time.deltaTime;
+				if (_sweepReleaseTimer <= 0f)
+				{
+					IsSweeping = false;
+					_sweepCooldownTimer = sweepExitCooldown;
+				}
 			}
 		}
 		if (_sweepCooldownTimer > 0f)

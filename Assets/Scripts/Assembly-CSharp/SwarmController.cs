@@ -80,7 +80,17 @@ public class SwarmController : MonoBehaviour
 	[SerializeField]
 	private Color currentTargetColor = Color.blue;
 
+	[SerializeField]
+	private float sweepScanSuppress = 0.6f;
+
+	[SerializeField]
+	private float sweepAcceleration = 40f;
+
+	private float _currentTargetTime;
+
 	private bool _isSystemBusy;
+
+	private bool _loggedMiss;
 
 	private Queue<SweepNode> _sweepPath = new Queue<SweepNode>();
 
@@ -600,6 +610,7 @@ public class SwarmController : MonoBehaviour
 
 	private void BeginSweep()
 	{
+		_loggedMiss = false;
 		_wasSweepingPreviously = true;
 		_sweepPath.Clear();
 		if (_cursor != null && _cursor.GetWorldPosition(groundLayer, out var worldPos))
@@ -617,6 +628,7 @@ public class SwarmController : MonoBehaviour
 				_lastRecordedCursorPos = ClampToLeash(worldPos);
 			}
 		}
+		_currentTargetTime = Time.time;
 	}
 
 	private void ProcessSweep()
@@ -625,6 +637,11 @@ public class SwarmController : MonoBehaviour
 		{
 			worldPos = ClampToLeash(worldPos);
 			_cursor.ToggleVisuals(show: true);
+			if (!TrySnapToNavMesh(ref worldPos))
+			{
+				UpdateSweepTargetAndDirectUnits();
+				return;
+			}
 			if (Vector3.Distance(worldPos, _lastRecordedCursorPos) > pathResolution)
 			{
 				_sweepPath.Enqueue(new SweepNode
@@ -633,6 +650,15 @@ public class SwarmController : MonoBehaviour
 					TimeAdded = Time.time
 				});
 				_lastRecordedCursorPos = worldPos;
+			}
+			UpdateSweepTargetAndDirectUnits();
+		}
+		else if (_cursor != null)
+		{
+			if (!_loggedMiss)
+			{
+				Debug.LogWarning("[SweepDebug] cursor ray missed the ground layer");
+				_loggedMiss = true;
 			}
 			UpdateSweepTargetAndDirectUnits();
 		}
@@ -695,14 +721,24 @@ public class SwarmController : MonoBehaviour
 			zero /= (float)num;
 			if (Vector3.Distance(zero, _currentSweepTarget) <= targetReachedRadius)
 			{
-				Vector3 worldPos2;
+				while (_sweepPath.Count > 0 && _sweepPath.Peek().TimeAdded <= _currentTargetTime)
+				{
+					_sweepPath.Dequeue();
+				}
 				if (_sweepPath.Count > 0)
 				{
-					_currentSweepTarget = _sweepPath.Dequeue().Position;
+					SweepNode next = _sweepPath.Dequeue();
+					_currentSweepTarget = next.Position;
+					_currentTargetTime = next.TimeAdded;
 				}
-				else if (_cursor.GetWorldPosition(groundLayer, out worldPos2))
+				else if (_cursor.GetWorldPosition(groundLayer, out Vector3 wp))
 				{
-					_currentSweepTarget = ClampToLeash(worldPos2);
+					Vector3 p = ClampToLeash(wp);
+					if (TrySnapToNavMesh(ref p))
+					{
+						_currentSweepTarget = p;
+						_currentTargetTime = Time.time;
+					}
 				}
 			}
 		}
@@ -731,7 +767,8 @@ public class SwarmController : MonoBehaviour
 				item.NavAgent.stoppingDistance = sweepStoppingDistance;
 				float distFromTarget = Vector3.Distance(item.transform.position, targetPos);
 				float speed = (distFromTarget > stragglerCatchUpDistance) ? item.BaseMoveSpeed * stragglerSpeedMultiplier : item.BaseMoveSpeed;
-				item.MoveTo(targetPos, speed);
+				item.SuppressScan(sweepScanSuppress);
+				item.MoveTo(targetPos, speed, sweepAcceleration);
 			}
 		}
 	}
@@ -759,5 +796,39 @@ public class SwarmController : MonoBehaviour
 			}
 			item.EnterGuardMode(component);
 		}
+	}
+
+	private bool TrySnapToNavMesh(ref Vector3 pos)
+	{
+		NavMeshHit hit;
+		if (NavMesh.SamplePosition(pos, out hit, 2.5f, NavMesh.AllAreas))
+		{
+			pos = hit.position;
+			return true;
+		}
+		return false;
+	}
+
+	private void OnDrawGizmos()
+	{
+		if (!showSweepPath || !Application.isPlaying || !_wasSweepingPreviously)
+		{
+			return;
+		}
+		Gizmos.color = pathColor;
+		bool has = false;
+		Vector3 prev = Vector3.zero;
+		foreach (SweepNode n in _sweepPath)
+		{
+			Gizmos.DrawSphere(n.Position, 0.25f);
+			if (has)
+			{
+				Gizmos.DrawLine(prev, n.Position);
+			}
+			prev = n.Position;
+			has = true;
+		}
+		Gizmos.color = currentTargetColor;
+		Gizmos.DrawSphere(_currentSweepTarget + Vector3.up * 0.5f, 0.6f);
 	}
 }

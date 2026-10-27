@@ -100,7 +100,7 @@ public class UnitMoveState : UnitStateBase
 			_agent.ReacquireOrReturn();
 			return;
 		}
-		if (_targetEntity == null || (_targetIsAuto && !_hasRequestedAttach))
+		if (Time.time >= _agent.ScanSuppressedUntil && (_targetEntity == null || (_targetIsAuto && !_hasRequestedAttach)))
 		{
 			_scanTimer += Time.deltaTime;
 			if (_scanTimer >= _agent.scanInterval)
