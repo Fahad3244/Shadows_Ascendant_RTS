@@ -116,6 +116,18 @@ public class SwarmController : MonoBehaviour
 
 	public event Action OnSelectionChanged;
 
+	public void DespawnAllImmediate()
+	{
+		if (unitPool == null) return;
+		foreach (UnitAgent a in new List<UnitAgent>(unitPool.ActiveAgents))
+		{
+			if (a == null || a.CurrentStateEnum == UnitState.Dead) continue;
+			a.ChangeState(UnitState.Idle);
+			a.ClearReservation();
+			a.Despawn();
+		}
+	}
+
 	private void Start()
 	{
 		_mainCamera = Camera.main;

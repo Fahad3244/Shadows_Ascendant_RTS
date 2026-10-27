@@ -517,7 +517,7 @@ public class AttachableTarget : MonoBehaviour
 		}
 		if (IsLocked)
 		{
-			label = "Placed";
+			label = Category == InteractionCategory.Interactable ? "Done" : "Placed";
 			color = Color.cyan;
 		}
 		else if (requiredUnitsToMove > 0)

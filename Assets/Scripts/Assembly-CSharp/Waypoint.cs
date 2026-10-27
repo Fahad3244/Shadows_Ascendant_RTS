@@ -419,6 +419,11 @@ public class Waypoint : MonoBehaviour
 		}
 		return best;
 	}
+
+	public void FlipPlayerEnemy()
+	{
+		SetOwner(owner == WaypointOwner.Player ? WaypointOwner.Enemy : WaypointOwner.Player);
+	}
 }
 
 public enum WaypointOwner
