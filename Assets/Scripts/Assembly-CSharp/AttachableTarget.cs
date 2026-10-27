@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.AI;
 
 [RequireComponent(typeof(TargetableEntity))]
 public class AttachableTarget : MonoBehaviour
@@ -101,6 +102,57 @@ public class AttachableTarget : MonoBehaviour
 
 	private bool _unlimitedSlots;
 
+	private Dictionary<UnitAgent, int> _slotIndex = new Dictionary<UnitAgent, int>();
+
+	private Vector3 SlotWorldPosition(int i)
+	{
+		float f = (float)i * (360f / (float)maxAttachSlots) * (MathF.PI / 180f);
+		return transform.position + new Vector3(Mathf.Sin(f), attachPointHeight, Mathf.Cos(f)) * attachRadius;
+	}
+
+	private void AssignSlot(UnitAgent agent)
+	{
+		if (_unlimitedSlots || maxAttachSlots <= 0)
+		{
+			return;
+		}
+		Vector3 from = agent.transform.position;
+		bool hasStart = NavMesh.SamplePosition(from, out NavMeshHit startHit, 2f, NavMesh.AllAreas);
+		int best = -1;
+		int bestAny = -1;
+		float bestD = float.MaxValue;
+		float bestAnyD = float.MaxValue;
+		for (int i = 0; i < maxAttachSlots; i++)
+		{
+			if (_slotIndex.ContainsValue(i))
+			{
+				continue;
+			}
+			Vector3 p = SlotWorldPosition(i);
+			float d = (p - from).sqrMagnitude;
+			if (d < bestAnyD)
+			{
+				bestAnyD = d;
+				bestAny = i;
+			}
+			if (d >= bestD || !hasStart)
+			{
+				continue;
+			}
+			NavMeshHit hit;
+			if (NavMesh.SamplePosition(p, out hit, 1.5f, NavMesh.AllAreas) && !NavMesh.Raycast(startHit.position, hit.position, out _, NavMesh.AllAreas))
+			{
+				bestD = d;
+				best = i;
+			}
+		}
+		int chosen = ((best != -1) ? best : bestAny);
+		if (chosen != -1)
+		{
+			_slotIndex[agent] = chosen;
+		}
+	}
+
 	public bool IsLocked { get; private set; }
 
 	public bool IsIndestructible { get; private set; }
@@ -188,6 +240,7 @@ public class AttachableTarget : MonoBehaviour
 		_frontUnits.Remove(agent);
 		_frontSlotIndex.Remove(agent);
 		_attachedUnits.Add(agent);
+		AssignSlot(agent);
 		UpdateUI();
 		return true;
 	}
@@ -318,6 +371,7 @@ public class AttachableTarget : MonoBehaviour
 		{
 			_incomingUnits.Remove(agent);
 			_attachedUnits.Add(agent);
+			AssignSlot(agent);
 			agent.OnAttachedToTarget(this);
 			UpdateUI();
 			CheckMoveState();
@@ -335,6 +389,7 @@ public class AttachableTarget : MonoBehaviour
 		else if (_attachedUnits.Contains(agent))
 		{
 			_attachedUnits.Remove(agent);
+			_slotIndex.Remove(agent);
 			flag = true;
 			CheckMoveState();
 		}
@@ -367,6 +422,11 @@ public class AttachableTarget : MonoBehaviour
 	public Vector3 GetAttachmentPosition(UnitAgent agent)
 	{
 		int num = _attachedUnits.IndexOf(agent);
+		int assigned;
+		if (num != -1 && !_unlimitedSlots && _slotIndex.TryGetValue(agent, out assigned))
+		{
+			num = assigned;
+		}
 		if (num == -1 && _frontSlotIndex.TryGetValue(agent, out int frontSlot))
 		{
 			float t = maxFrontAttackers > 1 ? (float)frontSlot / (maxFrontAttackers - 1) : 0.5f;
@@ -419,6 +479,21 @@ public class AttachableTarget : MonoBehaviour
 				{
 					_frontSlotIndex.Remove(a);
 				}
+			}
+		}
+		if (_slotIndex.Count > _attachedUnits.Count)
+		{
+			List<UnitAgent> stale = new List<UnitAgent>();
+			foreach (KeyValuePair<UnitAgent, int> kv in _slotIndex)
+			{
+				if (kv.Key == null || !_attachedUnits.Contains(kv.Key))
+				{
+					stale.Add(kv.Key);
+				}
+			}
+			foreach (UnitAgent k in stale)
+			{
+				_slotIndex.Remove(k);
 			}
 		}
 	}

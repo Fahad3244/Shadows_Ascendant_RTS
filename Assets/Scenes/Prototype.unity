@@ -2814,10 +2814,6 @@ Transform:
   m_Children:
   - {fileID: 529}
   - {fileID: 1648065437}
-  - {fileID: 348}
-  - {fileID: 527}
-  - {fileID: 476}
-  - {fileID: 528}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -0, z: -0}
 --- !u!4 &308
@@ -3470,7 +3466,7 @@ Transform:
   - {fileID: 376}
   - {fileID: 340}
   - {fileID: 347}
-  m_Father: {fileID: 307}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &349
 Transform:
@@ -3952,7 +3948,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 344}
-  m_Father: {fileID: 307}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &493
 Transform:
@@ -4515,7 +4511,7 @@ Transform:
   - {fileID: 364}
   - {fileID: 530}
   - {fileID: 525}
-  m_Father: {fileID: 307}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: -180, y: -31.139517, z: 180}
 --- !u!4 &528
 Transform:
@@ -4531,7 +4527,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 351}
-  m_Father: {fileID: 307}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &529 stripped
 Transform:
@@ -11864,6 +11860,7 @@ GameObject:
   - component: {fileID: 300661036}
   - component: {fileID: 300661035}
   - component: {fileID: 300661034}
+  - component: {fileID: 300661043}
   m_Layer: 6
   m_Name: TestObject_Fence
   m_TagString: Untagged
@@ -12064,6 +12061,22 @@ Transform:
   - {fileID: 986309777}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: -0}
+--- !u!208 &300661043
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 300661033}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.5, y: 0.5, z: 0.5}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 1
+  m_Center: {x: 0, y: 0, z: 0}
+  m_TimeToStationary: 0.5
 --- !u!1 &317292722
 GameObject:
   m_ObjectHideFlags: 0
@@ -12643,6 +12656,7 @@ GameObject:
   - component: {fileID: 516973719}
   - component: {fileID: 516973718}
   - component: {fileID: 516973717}
+  - component: {fileID: 516973726}
   m_Layer: 6
   m_Name: TestObject_Barricade
   m_TagString: Untagged
@@ -12836,13 +12850,29 @@ Transform:
   m_GameObject: {fileID: 516973716}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 37.4, y: 1.65, z: -53.88}
+  m_LocalPosition: {x: 37.4, y: 2.39, z: -53.88}
   m_LocalScale: {x: 6, y: 2, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 317604037}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: -0}
+--- !u!208 &516973726
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 516973716}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.5, y: 0.5, z: 0.5}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 1
+  m_Center: {x: 0, y: 0, z: 0}
+  m_TimeToStationary: 0.5
 --- !u!1 &540544399
 GameObject:
   m_ObjectHideFlags: 0
@@ -17612,8 +17642,12 @@ SceneRoots:
   - {fileID: 301}
   - {fileID: 302}
   - {fileID: 305}
-  - {fileID: 307}
   - {fileID: 310}
+  - {fileID: 307}
+  - {fileID: 348}
+  - {fileID: 527}
+  - {fileID: 476}
+  - {fileID: 528}
   - {fileID: 311}
   - {fileID: 317}
   - {fileID: 319}
