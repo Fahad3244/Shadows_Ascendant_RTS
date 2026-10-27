@@ -282,7 +282,7 @@ public class MovableObject : MonoBehaviour
 			return;
 		}
 
-		Vector3 dest = fixedDestination != null ? fixedDestination.position : _targetWaypoint.transform.position;
+		Vector3 dest = fixedDestination != null ? fixedDestination.position : _targetWaypoint.ZoneCenter;
 		Vector3 flat = dest - transform.position;
 		flat.y = 0f;
 		float arrive = (fixedDestination == null && _targetWaypoint != null) ? Mathf.Max(arriveDistance, _targetWaypoint.ZoneRadius * deliverRadiusFraction) : arriveDistance;

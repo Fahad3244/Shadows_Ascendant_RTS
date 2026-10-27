@@ -14,6 +14,10 @@ public class Waypoint : MonoBehaviour
 	public WaypointOwner owner = WaypointOwner.Player;
 
 	[Header("Zone")]
+	[Tooltip("Offset of the zone (ring, capture area, delivery point) from the waypoint pivot.")]
+	[SerializeField]
+	private Vector3 zoneOffset = Vector3.zero;
+
 	[SerializeField]
 	private float zoneRadius = 8f;
 
@@ -93,13 +97,19 @@ public class Waypoint : MonoBehaviour
 
 	private LineRenderer _ring;
 
+	private Vector3 _ringCenter;
+
+	private float _ringRadius;
+
 	public float ZoneRadius => zoneRadius;
+
+	public Vector3 ZoneCenter => transform.position + zoneOffset;
 
 	public bool IsContested => isContested;
 
 	public bool Contains(Vector3 pos)
 	{
-		Vector3 d = pos - transform.position;
+		Vector3 d = pos - ZoneCenter;
 		d.y = 0f;
 		return d.magnitude <= zoneRadius;
 	}
@@ -129,6 +139,10 @@ public class Waypoint : MonoBehaviour
 
 	private void Update()
 	{
+		if (_ring != null && (ZoneCenter != _ringCenter || zoneRadius != _ringRadius))
+		{
+			RefreshRing();
+		}
 		_scanTimer -= Time.deltaTime;
 		if (_scanTimer <= 0f)
 		{
@@ -147,7 +161,7 @@ public class Waypoint : MonoBehaviour
 		playerUnitsInside = 0;
 		enemyUnitsInside = 0;
 		_seen.Clear();
-		int n = Physics.OverlapSphereNonAlloc(transform.position, zoneRadius, _hits, troopLayers | enemyLayers);
+		int n = Physics.OverlapSphereNonAlloc(ZoneCenter, zoneRadius, _hits, troopLayers | enemyLayers);
 		for (int i = 0; i < n; i++)
 		{
 			UnitAgent troop = _hits[i].GetComponentInParent<UnitAgent>();
@@ -269,9 +283,20 @@ public class Waypoint : MonoBehaviour
 		_ring.loop = true;
 		_ring.widthMultiplier = 0.15f;
 		_ring.material = new Material(Shader.Find("Sprites/Default"));
-		int seg = 48;
-		_ring.positionCount = seg;
-		Vector3 c = transform.position + Vector3.up * 0.1f;
+		_ring.positionCount = 48;
+		RefreshRing();
+	}
+
+	private void RefreshRing()
+	{
+		if (_ring == null)
+		{
+			return;
+		}
+		_ringCenter = ZoneCenter;
+		_ringRadius = zoneRadius;
+		Vector3 c = ZoneCenter + Vector3.up * 0.1f;
+		int seg = _ring.positionCount;
 		for (int i = 0; i < seg; i++)
 		{
 			float a = (float)i * Mathf.PI * 2f / (float)seg;
@@ -282,7 +307,7 @@ public class Waypoint : MonoBehaviour
 	private void OnDrawGizmosSelected()
 	{
 		Gizmos.color = Color.yellow;
-		Gizmos.DrawWireSphere(transform.position, zoneRadius);
+		Gizmos.DrawWireSphere(ZoneCenter, zoneRadius);
 	}
 
 	public static Waypoint Nearest(Vector3 position)
@@ -348,7 +373,7 @@ public class Waypoint : MonoBehaviour
 			{
 				continue;
 			}
-			float d = (w.transform.position - pos).sqrMagnitude;
+			float d = (w.ZoneCenter - pos).sqrMagnitude;
 			if (d < bestD)
 			{
 				bestD = d;
@@ -369,11 +394,11 @@ public class Waypoint : MonoBehaviour
 			{
 				continue;
 			}
-			if (maxDistance > 0f && Vector3.Distance(from, w.transform.position) > maxDistance)
+			if (maxDistance > 0f && Vector3.Distance(from, w.ZoneCenter) > maxDistance)
 			{
 				continue;
 			}
-			if (!NavMesh.SamplePosition(w.transform.position, out NavMeshHit hit, 3f, NavMesh.AllAreas))
+			if (!NavMesh.SamplePosition(w.ZoneCenter, out NavMeshHit hit, 3f, NavMesh.AllAreas))
 			{
 				continue;
 			}

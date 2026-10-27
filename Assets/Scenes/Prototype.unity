@@ -10951,7 +10951,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   owner: 0
-  zoneRadius: 8
+  zoneOffset: {x: 0, y: -1.3, z: 0}
+  zoneRadius: 7
   showZoneRing: 1
   capturable: 1
   captureSeconds: 8
@@ -11049,7 +11050,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   owner: 0
-  zoneRadius: 8
+  zoneOffset: {x: 0, y: -1.3, z: 0}
+  zoneRadius: 7
   showZoneRing: 1
   capturable: 1
   captureSeconds: 8
