@@ -7,5 +7,6 @@ public enum UnitState
 	Interacting = 4,
 	Carrying = 5,
 	Sweeping = 6,
-	Dead = 7
+	Dead = 7,
+	PickingUp = 8
 }

@@ -35,6 +35,9 @@ public class UnitAgent : MonoBehaviour
 	[Tooltip("How far from the destination a partial path may end before it counts as blocked.")]
 	public float blockedTolerance = 1.5f;
 
+	[Tooltip("Seconds a troop stops to show an item it just picked up.")]
+	public float pickupPauseTime = 1f;
+
 	[Header("Gear")]
 	[SerializeField]
 	private Vector3 gearVisualOffset = new Vector3(0f, 2.2f, 0f);
@@ -53,7 +56,8 @@ public class UnitAgent : MonoBehaviour
 	{
 		UnitState.AtFlag,
 		UnitState.Carrying,
-		UnitState.Interacting
+		UnitState.Interacting,
+		UnitState.PickingUp
 	};
 
 	public UnitState CurrentStateEnum { get; private set; }
@@ -164,6 +168,7 @@ public class UnitAgent : MonoBehaviour
 		_states.Add(UnitState.Carrying, new UnitCarryState(this));
 		_states.Add(UnitState.Dead, new UnitDeadState(this));
 		_states.Add(UnitState.Sweeping, new UnitSweepState(this));
+		_states.Add(UnitState.PickingUp, new UnitPickupState(this));
 	}
 
 	private void Update()
@@ -261,7 +266,7 @@ public class UnitAgent : MonoBehaviour
 			{
 				CarriedPickup = pickup;
 			}
-			ReturnToPlayer();
+			ChangeState(UnitState.PickingUp);
 			return;
 		}
 		if (target.GetComponent<ResourceSource>() != null)

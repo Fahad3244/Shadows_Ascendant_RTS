@@ -58,7 +58,7 @@ public static class TestArenaBuilder
         _dummy = MakeEnemyData("EnemyData_Dummy", 600f, 0f, 0.5f, 1f, 1.5f, 1f);
         _weak = MakeEnemyData("EnemyData_Weak", 150f, 3f, 8f, 2f, 1.5f, 3.5f);
         _brute = MakeEnemyData("EnemyData_Brute", 500f, 30f, 8f, 2f, 1f, 3.5f);
-        _killer = MakeEnemyData("EnemyData_Killer", 100f, 200f, 5f, 1f, 0.6f, 3.5f);
+        _killer = MakeEnemyData("EnemyData_Killer", 100f, 200f, 10f, 1f, 0.3f, 3.5f);
 
         _root = new GameObject("TestArena").transform;
 
@@ -153,7 +153,7 @@ public static class TestArenaBuilder
             "Sweep = direct control. Hold LEFT + RIGHT mouse together and move the mouse.");
 
         Lane(st, -30f, "S2-A  SWEEP IGNORES THINGS",
-            "FIRST hold left-click to send the troops out. THEN hold LEFT + RIGHT mouse together and move the mouse through the crates and the enemy.\nEXPECT: troops follow the cursor and do NOT stop for anything on the way. After you release they may pick a nearby target. That is normal.");
+            "FIRST hold left-click to send the troops out. THEN hold LEFT + RIGHT mouse together and move the mouse through the crates and the enemy.\nEXPECT: troops follow the cursor and do NOT stop for anything on the way. After you release they may pick a nearby target. That is normal. A white ring around you shows your sweep range.");
         Breakable(st, "S2A_CrateL", -33f, -8f, false, 400f);
         Breakable(st, "S2A_CrateR", -27f, -5f, false, 400f);
         Breakable(st, "S2A_CrateM", -30f, -2f, false, 400f);
@@ -196,12 +196,12 @@ public static class TestArenaBuilder
             "Movable objects, waypoints, capture and redirect.");
 
         Lane(st, -45f, "S4-A  CARRY + SPEED",
-            "TAP left-click 3 times (one troop each). The label is grey 3, turns blue at 3 troops and the object moves to the waypoint. Send more troops (max 6): it moves faster.\nEXPECT: delivered inside the ring, the label shows Placed, troops return. A cyan disc shows under the object while it is Active inside the waypoint ring.");
+            "TAP left-click 3 times (one troop each). The label counts down 3, 2, 1, 0 as troops arrive and turns blue at 0: the object then moves to the waypoint. Send more troops (max 6): the label goes -1, -2, -3 and it moves faster.\nEXPECT: delivered inside the ring (the waypoint's capture zone), the label shows Placed, troops return. A cyan disc shows under the object while it is Active inside the ring.");
         Movable(st, "S4A_Movable", -45f, -5f);
         WP(st, "S4A_Waypoint", -45f, 25f, 0);
 
         Lane(st, -15f, "S4-B  STEER AROUND DANGER",
-            "HOLD left-click so troops pick up the object. While it carries, press Z to target it, then SWEEP (LEFT + RIGHT mouse) to steer it around the three enemies.\nEXPECT: the object follows your cursor. After you release, it resumes toward the waypoint.");
+            "HOLD left-click so troops pick up the object. While it carries, press Z to target it: it FREEZES in place. Then SWEEP (LEFT + RIGHT mouse) to steer it around the three enemies. Press X to release it.\nEXPECT: the object stops when targeted and follows your cursor while you sweep. After X, it resumes toward the waypoint.");
         Movable(st, "S4B_Movable", -15f, -5f);
         WP(st, "S4B_Waypoint", -15f, 30f, 0);
         AddEnemy(st, "S4B_EnemyL", -19f, 14f, _dummy);
@@ -225,7 +225,7 @@ public static class TestArenaBuilder
         AddEnemy(st, "S4D_Capturer", 45f, 30f, _dummy);
 
         Lane(st, 70f, "S4-E  GOLD MINE CARRY",
-            "TAP left-click 2-3 times.\nEXPECT: troops attach to the mine, then each carries a load slowly to the nearest waypoint ring, deposits it and returns to you.");
+            "TAP left-click 2-3 times.\nEXPECT: troops attach to the mine, then each carries a load slowly to the nearest waypoint ring, deposits it and returns to you on its own (no manual recall needed).");
         Clone("GoldMine", st, 70f, -4f, "S4E_GoldMine");
         WP(st, "S4E_Waypoint", 70f, 25f, 0);
     }
@@ -285,8 +285,10 @@ public static class TestArenaBuilder
         PickupItemAt(st, "TestPotion", "S6A_Potion", -41f, -3f, 0);
 
         Lane(st, -15f, "S6-B  GEAR",
-            "Press 3 (Melee), TAP left-click: that troop equips the gear (cyan marker). Then press Z to target the dummy and TAP again with the same group.\nEXPECT: the equipped troop deals 15 per hit, other troops 10. Builders carry the gear back instead.");
+            "Press 3 (Melee), TAP left-click: that troop pauses a moment to show the item, then equips it (cyan cube above its head). Then press Z to target the dummy and TAP again with the same group.\nEXPECT: the equipped troop deals 15 per hit, other troops 10. Any troop type can equip gear, up to 4 pieces. An 'Army strength' popup shows the percentage.");
         PickupItemAt(st, "TestGear", "S6B_Gear", -15f, -3f, 1);
+        PickupItemAt(st, "TestGear", "S6B_Gear2", -11f, -3f, 1);
+        PickupItemAt(st, "TestGear", "S6B_Gear3", -19f, -3f, 1);
         AddEnemy(st, "S6B_Dummy", -15f, 14f, _dummy);
 
         Lane(st, 15f, "S6-C  RETRIEVABLE",
@@ -314,9 +316,9 @@ public static class TestArenaBuilder
         PickupItemAt(st, "TestGold", "S6D_GoldB", 49f, -3f, 0);
 
         Lane(st, 70f, "S6-E  CARRIER KILLED",
-            "TAP left-click once. As soon as the troop grabs the gold (it disappears), press M: a killer enemy appears on its way back.\nEXPECT: the troop dies ('Lost!'), the gold DROPS where it fell and can be collected again. Press M to remove the enemy.");
+            "TAP left-click once. The troop grabs the gold and pauses briefly to show it (yellow ball). During that pause press M: a killer enemy appears right next to it.\nEXPECT: the troop dies ('Lost!'), the gold DROPS where it fell and can be collected again. Press M to remove the enemy.");
         PickupItemAt(st, "TestGold", "S6E_Gold", 70f, 12f, 0);
-        GameObject killer = AddEnemy(st, "S6E_Killer", 70f, -2f, _killer);
+        GameObject killer = AddEnemy(st, "S6E_Killer", 70f, 8f, _killer);
         if (killer != null)
         {
             killer.SetActive(false);
@@ -475,6 +477,7 @@ public static class TestArenaBuilder
         Set<Waypoint>(go, "owner", owner);
         Set<Waypoint>(go, "debugFakePlayerUnits", 0);
         Set<Waypoint>(go, "debugFakeEnemyUnits", 0);
+        Set<Waypoint>(go, "zoneRadius", 4f);
         return go.GetComponent<Waypoint>();
     }
 
@@ -559,7 +562,7 @@ public static class TestArenaBuilder
             if (old != null) UnityEngine.Object.DestroyImmediate(old.gameObject);
         }
 
-        helpPanel = UiPanel(canvas, "ArenaHelpPanel", new Vector2(1f, 1f), new Vector2(-10f, -10f), new Vector2(560f, 330f));
+        helpPanel = UiPanel(canvas, "ArenaHelpPanel", new Vector2(1f, 1f), new Vector2(-10f, -10f), new Vector2(560f, 380f));
         TextMeshProUGUI help = UiText(helpPanel.transform, 15f);
         help.text =
             "<b>CONTROLS</b>\n" +
@@ -568,8 +571,11 @@ public static class TestArenaBuilder
             "LEFT click: tap = send 1 troop, hold = send the group\n" +
             "RIGHT click: tap = recall 1, hold = recall the group\n" +
             "LEFT + RIGHT together = SWEEP (steer troops directly)\n" +
-            "Z = target nearest / next    X = clear target\n" +
-            "Q = guard flag    Ctrl tap = run stored path\n" +
+            "Z = target nearest / next (a targeted carried object freezes)    X = clear target (object resumes)\n" +
+            "Q = guard flag\n" +
+            "Ctrl: HOLD = plan a route (hold LEFT + RIGHT to draw it), RELEASE = save it, TAP = run it\n" +
+            "Waypoint ring = capture zone (blue = yours, red = enemy)\n" +
+            "Counters: movable = troops still needed (negative = extra), enemy = free attach slots\n" +
             "K / L = flip a waypoint (S4)   E = wake enemy (S7)   M = killer (S6)   B = open walls (S7)\n" +
             "F1 Hub, F2-F8 stations 1-7   H hide help   F12 reset\n" +
             "Esc frees the mouse cursor";
@@ -647,6 +653,13 @@ public static class TestArenaBuilder
                     if (sr != null && !Mathf.Approximately(sr.floatValue, 15f))
                     {
                         sr.floatValue = 15f;
+                        pso.ApplyModifiedProperties();
+                        EditorUtility.SetDirty(prefab);
+                    }
+                    SerializedProperty pp = pso.FindProperty("pickupPauseTime");
+                    if (pp != null && !Mathf.Approximately(pp.floatValue, 2f))
+                    {
+                        pp.floatValue = 2f;
                         pso.ApplyModifiedProperties();
                         EditorUtility.SetDirty(prefab);
                     }

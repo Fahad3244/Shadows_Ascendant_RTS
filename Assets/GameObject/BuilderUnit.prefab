@@ -844,6 +844,8 @@ MonoBehaviour:
   reacquireAfterTargetLost: 1
   arrivePauseTime: 1.5
   blockedTolerance: 1.5
+  pickupPauseTime: 2
+  gearVisualOffset: {x: 0, y: 2.2, z: 0}
 --- !u!195 &195621510681728303
 NavMeshAgent:
   m_ObjectHideFlags: 0
