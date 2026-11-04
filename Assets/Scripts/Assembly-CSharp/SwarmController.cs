@@ -113,6 +113,8 @@ public class SwarmController : MonoBehaviour
 
 	private bool _isRecordingDelayCommand;
 
+	private bool _delayPathStarted;
+
 	private Camera _mainCamera;
 
 	public GroupSelection CurrentSelectedGroup { get; private set; }
@@ -216,9 +218,18 @@ public class SwarmController : MonoBehaviour
 		UpdateLeashRing(PlayerInputManager.Instance != null && PlayerInputManager.Instance.IsSweeping && !_isSystemBusy);
 		if (_isRecordingDelayCommand)
 		{
-			if (_cursor != null && delayManager != null && _cursor.GetWorldPosition(groundLayer, out var worldPos))
+			bool drawing = PlayerInputManager.Instance != null && PlayerInputManager.Instance.IsSweeping;
+			if (drawing && _cursor != null && delayManager != null && _cursor.GetWorldPosition(groundLayer, out var worldPos))
 			{
-				delayManager.UpdatePreview(worldPos);
+				if (!_delayPathStarted)
+				{
+					_delayPathStarted = true;
+					delayManager.StartPreview(CurrentSelectedGroup, worldPos);
+				}
+				else
+				{
+					delayManager.UpdatePreview(worldPos);
+				}
 			}
 		}
 		else
@@ -396,7 +407,7 @@ public class SwarmController : MonoBehaviour
 				startPos = hitInfo.point;
 			}
 			_cursor.WarpToWorldPosition(startPos);
-			delayManager.StartPreview(CurrentSelectedGroup, startPos);
+			_delayPathStarted = false;
 		}
 	}
 
@@ -406,6 +417,9 @@ public class SwarmController : MonoBehaviour
 		{
 			_isRecordingDelayCommand = false;
 			_cursor.ToggleVisuals(false);
+			bool started = _delayPathStarted;
+			_delayPathStarted = false;
+			if (!started) return;
 			if (_cursor.GetWorldPosition(groundLayer, out var worldPos))
 			{
 				ITargetable entityTarget = FindTargetAtCursor(worldPos);
@@ -479,6 +493,7 @@ public class SwarmController : MonoBehaviour
 
 	private void HandleRecallTap()
 	{
+		if (PlayerInputManager.Instance != null && PlayerInputManager.Instance.IsDelayKeyHeld) return;
 		if (targetingManager.CurrentTarget is GuardFlag guardFlag)
 		{
 			UnitAgent unitToRecall = guardFlag.GetUnitToRecall();
@@ -500,6 +515,7 @@ public class SwarmController : MonoBehaviour
 
 	private void HandleRecallMediumHold()
 	{
+		if (PlayerInputManager.Instance != null && PlayerInputManager.Instance.IsDelayKeyHeld) return;
 		if (_isSystemBusy)
 		{
 			return;
@@ -525,6 +541,7 @@ public class SwarmController : MonoBehaviour
 
 	private void HandleRecallLongHold()
 	{
+		if (PlayerInputManager.Instance != null && PlayerInputManager.Instance.IsDelayKeyHeld) return;
 		if (_isSystemBusy)
 		{
 			return;
