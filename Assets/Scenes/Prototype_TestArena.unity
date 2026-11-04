@@ -10605,7 +10605,7 @@ MonoBehaviour:
   playerModel: {fileID: 296}
   targetingManager: {fileID: 861}
   delayManager: {fileID: 854}
-  sendRange: 25
+  sendRange: 40
   pathResolution: 5
   targetReachedRadius: 6
   sweepStoppingDistance: 1.5

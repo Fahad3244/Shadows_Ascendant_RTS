@@ -219,6 +219,13 @@ public class MovableObject : MonoBehaviour
 			return;
 		}
 		_agent.speed = baseSpeed;
+		bool targeted = _ptm != null && _targetable != null && _ptm.CurrentTarget == (ITargetable)_targetable;
+		if (targeted)
+		{
+			Halt();
+			state = CarryState.Idle;
+			return;
+		}
 		if (!autoCarry)
 		{
 			Halt();
