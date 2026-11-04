@@ -23,4 +23,7 @@ public class EnemyData : ScriptableObject
 	public float aggroRange = 8f;
 
 	public float patrolRadius = 10f;
+
+	[Tooltip("Never reacts to anyone. Used for test dummies.")]
+	public bool passive;
 }

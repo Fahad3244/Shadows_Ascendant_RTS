@@ -15,7 +15,7 @@ public static class TestArenaBuilder
     private static Transform _root;
     private static float _playerY = 0.1f;
     private static float _groundY = 0.72f;
-    private static EnemyData _dummy, _weak, _brute, _killer, _tank;
+    private static EnemyData _dummy, _weak, _brute, _killer, _tank, _hunter;
     private static readonly List<Transform> Spawns = new List<Transform>();
     private static readonly Dictionary<string, Material> Mats = new Dictionary<string, Material>();
 
@@ -60,6 +60,11 @@ public static class TestArenaBuilder
         _brute = MakeEnemyData("EnemyData_Brute", 500f, 30f, 8f, 2f, 0.7f, 3.5f);
         _killer = MakeEnemyData("EnemyData_Killer", 100f, 200f, 10f, 1f, 0.3f, 3.5f);
         _tank = MakeEnemyData("EnemyData_Tank", 5000f, 0f, 0.5f, 0f, 1.5f, 1f);
+        _hunter = MakeEnemyData("EnemyData_Hunter", 800f, 10f, 10f, 1f, 1.2f, 3.5f);
+        _dummy.passive = true;
+        _tank.passive = true;
+        EditorUtility.SetDirty(_dummy);
+        EditorUtility.SetDirty(_tank);
 
         _root = new GameObject("TestArena").transform;
 
@@ -382,28 +387,45 @@ public static class TestArenaBuilder
     private static void BuildS8()
     {
         Transform st = Station("S8_Combat", Gap, -Gap, "S8  ENEMY COMBAT",
-            "Backstab, stun, enemy first strike and shake-off. Press 3 (Melee), press Z to target the enemy, then HOLD left-click.");
+            "Backstab, stun, shake-off and enemy target priority. Press 3 (Melee), press Z to target the enemy, then HOLD left-click.");
 
         Lane(st, -45f, "S8-A  SHAKE-OFF",
             "Press 3 (Melee), press Z, HOLD left-click. Wait.\nEXPECT: about 5 seconds after the first troop attaches, the enemy glows yellow for 1.5 seconds, then throws every attached troop away. Thrown troops take damage, slide back and show a gray ball (stunned). Run it again and RECALL (tap right-click) during the glow: that troop is safe.");
         AddEnemy(st, "S8A_Tank", -45f, -2f, _tank, 5);
 
-        Lane(st, -15f, "S8-B  BACKSTAB",
+        Lane(st, -27f, "S8-B  BACKSTAB",
             "Press 3 (Melee), press Z, HOLD left-click. Troops arrive from behind the enemy.\nEXPECT: the damage numbers on troops behind it show 30 (3x backstab).");
-        AddEnemy(st, "S8B_Tank", -15f, -2f, _tank, 5);
+        AddEnemy(st, "S8B_Tank", -27f, -2f, _tank, 5);
 
-        Lane(st, 15f, "S8-C  FRONT (NO BACKSTAB)",
+        Lane(st, -9f, "S8-C  FRONT (NO BACKSTAB)",
             "Same as S8-B, but this enemy faces YOU.\nEXPECT: damage numbers show 10 (ring) or 5 (front attackers), no 30s. This proves backstab only works from behind.");
-        GameObject facing = AddEnemy(st, "S8C_Tank", 15f, -2f, _tank, 5);
+        GameObject facing = AddEnemy(st, "S8C_Tank", -9f, -2f, _tank, 5);
         if (facing != null) facing.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
 
-        Lane(st, 45f, "S8-D  STUN",
+        Lane(st, 9f, "S8-D  STUN",
             "Press 3 (Melee), press Z, HOLD left-click. Once troops are hitting it, press N.\nEXPECT: for 5 seconds the numbers double (it is stunned). Pressing N right when the yellow glow starts also cancels the shake-off.");
-        AddEnemy(st, "S8D_Tank", 45f, -2f, _tank, 5);
+        AddEnemy(st, "S8D_Tank", 9f, -2f, _tank, 5);
 
-        Lane(st, 70f, "S8-E  ENEMY HITS FIRST",
-            "TAP left-click once.\nEXPECT: the brute notices the troop, walks to it and hits it almost as soon as it reaches it. The troop gets very little time to strike first.");
-        AddEnemy(st, "S8E_Brute", 70f, -2f, _brute, 3);
+        Lane(st, 27f, "S8-F  CART FIRST",
+            "Walk to the cart. Press Z until the cart has an outline, then TAP left-click twice: two troops cluster around it (they do not damage it). Then press E to wake the hunter.\nEXPECT: the hunter ignores your closer troops and walks to the CART and attacks it. The Console shows 'target -> S8F_Cart'. When the cart breaks, it turns on your troops. Press X to clear your target afterwards. With 3 troops the cart is carried instead.");
+        GameObject cart = Movable(st, "S8F_Cart", 27f, -4f);
+        if (cart != null)
+        {
+            Set<MovableObject>(cart, "isCart", true);
+            Set<MovableObject>(cart, "cartHealth", 100f);
+        }
+        GameObject hunter = AddEnemy(st, "S8F_Hunter", 27f, 4f, _hunter, 5);
+        if (hunter != null)
+        {
+            hunter.SetActive(false);
+            GameObject hk = new GameObject("S8F_Keys");
+            hk.transform.SetParent(st, false);
+            AddKey(hk.transform, KeyCode.E, new[] { hunter }, null);
+        }
+
+        Lane(st, 45f, "S8-G  LAST ATTACKER",
+            "Press 3 (Melee), TAP left-click twice (two troops).\nEXPECT: the hunter fights back and goes for whichever troop hit it last. The Console 'target -> ...' lines switch between the two troops every couple of seconds.");
+        AddEnemy(st, "S8G_Hunter", 45f, -2f, _hunter, 5);
     }
 
     // ---------------------------------------------------------------- builders

@@ -41,6 +41,11 @@ public class EnemyBase : MonoBehaviour
 	[SerializeField] private float troopStunTime = 2.5f;
 	[SerializeField] private Color telegraphColor = new Color(1f, 0.9f, 0.2f);
 
+	[Header("Target Priority")]
+	[SerializeField] private float damageSwitchWindow = 3f;
+	[SerializeField] private float damageSwitchMaxRange = 20f;
+	[SerializeField] private float retargetCooldown = 1.5f;
+
 	[Header("Debug")]
 	[SerializeField]
 	private EnemyState currentState;
@@ -66,6 +71,10 @@ public class EnemyBase : MonoBehaviour
 	private Renderer[] _renderers;
 	private MaterialPropertyBlock _mpb;
 
+	private Transform _lastAttacker;
+	private float _lastDamageTime = -999f;
+	private float _lastRetargetTime = -999f;
+
 	private const float SCAN_RATE = 0.5f;
 
 	private void Awake()
@@ -82,6 +91,7 @@ public class EnemyBase : MonoBehaviour
 			_navAgent.speed = enemyData.moveSpeed;
 		}
 		_health.OnDeath.AddListener(Die);
+		_health.OnDamaged += HandleDamaged;
 	}
 
 	private void Update()
@@ -117,19 +127,65 @@ public class EnemyBase : MonoBehaviour
 
 	private void HandleTargetScan()
 	{
+		if (enemyData.passive) return;
 		_scanTimer += Time.deltaTime;
-		if (_scanTimer > 0.5f)
+		if (_scanTimer <= SCAN_RATE) return;
+		_scanTimer = 0f;
+
+		Transform best = ChooseTarget();
+		if (best == null) return;
+
+		if (best != _currentTarget)
 		{
-			_scanTimer = 0f;
-			if (FindClosestTarget())
-			{
-				TransitionToState(EnemyState.Chasing);
-			}
+			bool current = _currentTarget != null && IsTargetStillValid(_currentTarget);
+			if (current && Time.time - _lastRetargetTime < retargetCooldown) return;
+			_lastRetargetTime = Time.time;
+			Debug.Log("[Enemy] " + name + " target -> " + best.name);
+			_currentTarget = best;
+			if (currentState == EnemyState.Attacking) TransitionToState(EnemyState.Chasing);
 		}
+		if (currentState == EnemyState.Idle) TransitionToState(EnemyState.Chasing);
+	}
+
+	private void HandleDamaged(DamageInfo info)
+	{
+		if (info.attackerReference == null) return;
+		_lastAttacker = info.attackerReference;
+		_lastDamageTime = Time.time;
+	}
+
+	private Transform ChooseTarget()
+	{
+		// 1. carts
+		Transform cart = null;
+		float cartD = enemyData.aggroRange;
+		foreach (MovableObject m in MovableObject.Carts)
+		{
+			if (m == null || !m.isActiveAndEnabled) continue;
+			Health h = m.GetComponent<Health>();
+			if (h == null || h.IsDead) continue;
+			float d = Vector3.Distance(transform.position, m.transform.position);
+			if (d <= cartD) { cartD = d; cart = m.transform; }
+		}
+		if (cart != null) return cart;
+
+		// 2. most recent damage source
+		if (_lastAttacker != null
+			&& Time.time - _lastDamageTime <= damageSwitchWindow
+			&& IsTargetStillValid(_lastAttacker)
+			&& Vector3.Distance(transform.position, _lastAttacker.position) <= damageSwitchMaxRange)
+			return _lastAttacker;
+
+		// 3. keep the current target while attacking it
+		if (currentState == EnemyState.Attacking && IsTargetStillValid(_currentTarget)) return _currentTarget;
+
+		// 4. nearest
+		return FindNearestTarget();
 	}
 
 	private void HandleChasingState()
 	{
+		if (!_navAgent.isOnNavMesh) return;
 		HandleTargetScan();
 		if (!IsTargetStillValid(_currentTarget))
 		{
@@ -147,6 +203,9 @@ public class EnemyBase : MonoBehaviour
 
 	private void HandleAttackingState()
 	{
+		if (!_navAgent.isOnNavMesh) return;
+		HandleTargetScan();
+		if (currentState != EnemyState.Attacking) return;
 		if (!IsTargetStillValid(_currentTarget))
 		{
 			TransitionToState(EnemyState.Idle);
@@ -262,21 +321,21 @@ public class EnemyBase : MonoBehaviour
 
 	private void Patrol()
 	{
+		if (!_navAgent.isOnNavMesh) return;
 		if (!_navAgent.pathPending && _navAgent.remainingDistance < 0.5f)
 		{
 			SetRandomPatrolPoint();
 		}
 	}
 
-	private bool FindClosestTarget()
+	private Transform FindNearestTarget()
 	{
 		if (_myAttachableSelf.AttachedUnitCount > 0)
 		{
 			UnitAgent priorityAttachedUnit = _myAttachableSelf.GetPriorityAttachedUnit();
 			if (priorityAttachedUnit != null)
 			{
-				_currentTarget = priorityAttachedUnit.transform;
-				return true;
+				return priorityAttachedUnit.transform;
 			}
 		}
 		float num = float.MaxValue;
@@ -309,12 +368,7 @@ public class EnemyBase : MonoBehaviour
 				}
 			}
 		}
-		if (collider != null)
-		{
-			_currentTarget = collider.transform;
-			return true;
-		}
-		return false;
+		return collider != null ? collider.transform : null;
 	}
 
 	private void SetRandomPatrolPoint()
@@ -383,6 +437,7 @@ public class EnemyBase : MonoBehaviour
 	private void OnDestroy()
 	{
 		_health.OnDeath.RemoveListener(Die);
+		_health.OnDamaged -= HandleDamaged;
 	}
 
 	private void OnDrawGizmosSelected()

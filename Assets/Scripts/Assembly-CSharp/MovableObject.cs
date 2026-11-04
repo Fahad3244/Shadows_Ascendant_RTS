@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Events;
@@ -52,6 +53,14 @@ public class MovableObject : MonoBehaviour
 
 	[SerializeField]
 	private UnityEvent onDelivered;
+
+	public static readonly List<MovableObject> Carts = new List<MovableObject>();
+
+	[Header("Cart")]
+	[SerializeField] private bool isCart;
+	[SerializeField] private float cartHealth = 300f;
+
+	public bool IsCart => isCart;
 
 	[Header("Waypoint Zone")]
 	[Tooltip("Delivered when within this fraction of the zone radius from the waypoint centre (1 = edge, 0.5 = halfway).")]
@@ -130,16 +139,32 @@ public class MovableObject : MonoBehaviour
 		{
 			activeVisual.SetActive(false);
 		}
+		if (isCart)
+		{
+			Health h = GetComponent<Health>();
+			if (h == null) h = gameObject.AddComponent<Health>();
+			if (h.OnDeath == null) h.OnDeath = new UnityEngine.Events.UnityEvent();
+			h.Initialize(cartHealth);
+			h.OnDeath.AddListener(OnCartDestroyed);
+		}
 	}
 
 	private void OnEnable()
 	{
 		Waypoint.OnPlayerLostWaypoint += HandleWaypointLost;
+		if (isCart && !Carts.Contains(this)) Carts.Add(this);
 	}
 
 	private void OnDisable()
 	{
 		Waypoint.OnPlayerLostWaypoint -= HandleWaypointLost;
+		Carts.Remove(this);
+	}
+
+	private void OnCartDestroyed()
+	{
+		_attach.EjectAllUnits();
+		Destroy(gameObject);
 	}
 
 	private void HandleWaypointLost(Waypoint wp)

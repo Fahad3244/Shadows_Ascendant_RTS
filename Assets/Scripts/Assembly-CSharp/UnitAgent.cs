@@ -364,6 +364,8 @@ public class UnitAgent : MonoBehaviour
 			}
 			else if (componentInParent.Team == TargetTeam.Object)
 			{
+				MovableObject mv = componentInParent.GetComponent<MovableObject>();
+				if (mv != null && mv.IsCart) continue;
 				if (dist < closestObjectDist && CanReach(componentInParent.transform.position)) { closestObjectDist = dist; closestObject = componentInParent; }
 			}
 		}

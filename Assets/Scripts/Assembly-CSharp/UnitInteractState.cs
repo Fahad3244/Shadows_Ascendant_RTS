@@ -165,7 +165,9 @@ public class UnitInteractState : UnitStateBase
 		if (_isInSlot)
 		{
 			_agent.transform.position = attachmentPosition;
-			if (component != null && !component.IsDead && _target.MeetsRequirement && CombatValidation.IsValidTarget(component, TargetTeam.Friendly, targetTeam))
+			MovableObject cartCheck = _target.GetComponent<MovableObject>();
+			bool friendlyCart = cartCheck != null && cartCheck.IsCart;
+			if (!friendlyCart && component != null && !component.IsDead && _target.MeetsRequirement && CombatValidation.IsValidTarget(component, TargetTeam.Friendly, targetTeam))
 			{
 				_interactTimer += Time.deltaTime;
 				if (_interactTimer >= 1f)
