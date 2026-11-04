@@ -522,17 +522,9 @@ public class AttachableTarget : MonoBehaviour
 		}
 		else if (requiredUnitsToMove > 0)
 		{
-			int n = AttachedUnitCount;
-			if (n >= requiredUnitsToMove)
-			{
-				label = n.ToString();
-				color = metColor;
-			}
-			else
-			{
-				label = requiredUnitsToMove.ToString();
-				color = requirementColor;
-			}
+			int remaining = requiredUnitsToMove - AttachedUnitCount;
+			label = remaining.ToString();
+			color = remaining <= 0 ? metColor : requirementColor;
 		}
 		else
 		{
