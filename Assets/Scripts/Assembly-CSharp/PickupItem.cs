@@ -51,7 +51,7 @@ public class PickupItem : MonoBehaviour
 		}
 		_collected = true;
 		gameObject.SetActive(false);
-		if (mode == PickupMode.EquipToTroop && agent.InternalData != null && !agent.InternalData.hasGear)
+		if (mode == PickupMode.EquipToTroop && agent.InternalData != null && agent.InternalData.gearCount < Unit.MaxGear)
 		{
 			agent.EquipGear(gearName, damageBonus, equippedVisualPrefab);
 			Debug.Log($"[Pickup] {agent.name} equipped {gearName} (+{damageBonus * 100f:F0}% damage)");

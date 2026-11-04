@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
@@ -8,13 +9,15 @@ public class Unit
 
 	public int health = 100;
 
-	public bool hasGear;
+	public const int MaxGear = 4;
+
+	public int gearCount;
 
 	public string gearName;
 
 	public float damageBonus;
 
-	public GameObject gearVisualPrefab;
+	public List<GameObject> gearVisualPrefabs = new List<GameObject>();
 
 	public Unit(UnitType unitType)
 	{

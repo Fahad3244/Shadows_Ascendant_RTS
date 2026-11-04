@@ -39,7 +39,7 @@ public class UnitAgent : MonoBehaviour
 	[SerializeField]
 	private Vector3 gearVisualOffset = new Vector3(0f, 2.2f, 0f);
 
-	private GameObject _gearVisual;
+	private readonly List<GameObject> _gearVisuals = new List<GameObject>();
 
 	private Health _health;
 
@@ -93,40 +93,39 @@ public class UnitAgent : MonoBehaviour
 		{
 			return;
 		}
-		InternalData.hasGear = true;
+		InternalData.gearCount++;
 		InternalData.gearName = gearName;
-		InternalData.damageBonus = damageBonus;
-		InternalData.gearVisualPrefab = visualPrefab;
+		InternalData.damageBonus += damageBonus;
+		InternalData.gearVisualPrefabs.Add(visualPrefab);
 		RefreshGearVisual();
 	}
 
 	public void RefreshGearVisual()
 	{
-		if (_gearVisual != null)
+		foreach (GameObject g in _gearVisuals)
+			if (g != null) Destroy(g);
+		_gearVisuals.Clear();
+		if (InternalData == null) return;
+
+		for (int i = 0; i < InternalData.gearVisualPrefabs.Count; i++)
 		{
-			Destroy(_gearVisual);
-			_gearVisual = null;
-		}
-		if (InternalData == null || !InternalData.hasGear)
-		{
-			return;
-		}
-		if (InternalData.gearVisualPrefab != null)
-		{
-			_gearVisual = Instantiate(InternalData.gearVisualPrefab, transform);
-		}
-		else
-		{
-			_gearVisual = GameObject.CreatePrimitive(PrimitiveType.Cube);
-			Destroy(_gearVisual.GetComponent<Collider>());
-			_gearVisual.transform.SetParent(transform, false);
-			_gearVisual.transform.localScale = Vector3.one * 0.35f;
-			_gearVisual.GetComponent<Renderer>().material = new Material(Shader.Find("Sprites/Default"))
+			GameObject prefab = InternalData.gearVisualPrefabs[i];
+			GameObject v;
+			if (prefab != null)
 			{
-				color = Color.cyan
-			};
+				v = Instantiate(prefab, transform);
+			}
+			else
+			{
+				v = GameObject.CreatePrimitive(PrimitiveType.Cube);
+				Destroy(v.GetComponent<Collider>());
+				v.transform.SetParent(transform, false);
+				v.transform.localScale = Vector3.one * 0.3f;
+				v.GetComponent<Renderer>().material = new Material(Shader.Find("Sprites/Default")) { color = Color.cyan };
+			}
+			v.transform.localPosition = gearVisualOffset + new Vector3((i - 1.5f) * 0.4f, 0f, 0f);
+			_gearVisuals.Add(v);
 		}
-		_gearVisual.transform.localPosition = gearVisualOffset;
 	}
 
 	public void Initialize(Unit data, UnitType type, PlayerUnitManager manager, UnitPool pool, Transform player)
