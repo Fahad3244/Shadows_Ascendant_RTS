@@ -57,7 +57,8 @@ public class UnitAgent : MonoBehaviour
 		UnitState.AtFlag,
 		UnitState.Carrying,
 		UnitState.Interacting,
-		UnitState.PickingUp
+		UnitState.PickingUp,
+		UnitState.Stunned
 	};
 
 	public UnitState CurrentStateEnum { get; private set; }
@@ -169,6 +170,7 @@ public class UnitAgent : MonoBehaviour
 		_states.Add(UnitState.Dead, new UnitDeadState(this));
 		_states.Add(UnitState.Sweeping, new UnitSweepState(this));
 		_states.Add(UnitState.PickingUp, new UnitPickupState(this));
+		_states.Add(UnitState.Stunned, new UnitStunnedState(this));
 	}
 
 	private void Update()
@@ -229,6 +231,15 @@ public class UnitAgent : MonoBehaviour
 	{
 		ClearReservation();
 		ChangeState(UnitState.Returning);
+	}
+
+	public void GetThrown(Vector3 direction, float damage, float knockback, float stunSeconds, Transform source)
+	{
+		if (CurrentStateEnum == UnitState.Dead) return;
+		ClearReservation();
+		((UnitStunnedState)_states[UnitState.Stunned]).Setup(direction, knockback, stunSeconds);
+		ChangeState(UnitState.Stunned);
+		_health.TakeDamage(new DamageInfo { amount = damage, attackerReference = source, type = DamageType.Normal });
 	}
 
 	public void Despawn()

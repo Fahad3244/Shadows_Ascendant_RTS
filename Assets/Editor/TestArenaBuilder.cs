@@ -15,7 +15,7 @@ public static class TestArenaBuilder
     private static Transform _root;
     private static float _playerY = 0.1f;
     private static float _groundY = 0.72f;
-    private static EnemyData _dummy, _weak, _brute, _killer;
+    private static EnemyData _dummy, _weak, _brute, _killer, _tank;
     private static readonly List<Transform> Spawns = new List<Transform>();
     private static readonly Dictionary<string, Material> Mats = new Dictionary<string, Material>();
 
@@ -56,9 +56,10 @@ public static class TestArenaBuilder
         }
 
         _dummy = MakeEnemyData("EnemyData_Dummy", 600f, 0f, 0.5f, 1f, 1.5f, 1f);
-        _weak = MakeEnemyData("EnemyData_Weak", 150f, 3f, 8f, 2f, 1.5f, 3.5f);
-        _brute = MakeEnemyData("EnemyData_Brute", 500f, 30f, 8f, 2f, 1f, 3.5f);
+        _weak = MakeEnemyData("EnemyData_Weak", 150f, 3f, 8f, 2f, 0.8f, 3.5f);
+        _brute = MakeEnemyData("EnemyData_Brute", 500f, 30f, 8f, 2f, 0.7f, 3.5f);
         _killer = MakeEnemyData("EnemyData_Killer", 100f, 200f, 10f, 1f, 0.3f, 3.5f);
+        _tank = MakeEnemyData("EnemyData_Tank", 5000f, 0f, 0.5f, 0f, 1.5f, 1f);
 
         _root = new GameObject("TestArena").transform;
 
@@ -70,6 +71,7 @@ public static class TestArenaBuilder
         BuildS5();
         BuildS6();
         BuildS7();
+        BuildS8();
 
         GameObject helpPanel, hintPanel;
         TextMeshProUGUI hintLabel;
@@ -116,7 +118,7 @@ public static class TestArenaBuilder
     private static void BuildHub()
     {
         Transform hub = Station("Hub", 0f, 0f, "HUB",
-            "Press F2-F8 to visit the test stations: F2 Targeting, F3 Sweep, F4 Hostiles, F5 Carry + Waypoints, F6 Breakables, F7 Pickups, F8 Failures. " +
+            "Press F2-F9 to visit the test stations: F2 Targeting, F3 Sweep, F4 Hostiles, F5 Carry + Waypoints, F6 Breakables, F7 Pickups, F8 Failures, F9 Combat. " +
             "F1 returns here. H hides the controls. F12 resets everything. In a station, stand on a green pad to read what to test.");
         Disc(hub, "HubDisc", 0f, -27f, 3f, new Color(0.3f, 0.6f, 1f));
     }
@@ -178,7 +180,7 @@ public static class TestArenaBuilder
             "Attach points, front attackers and health symbols. Press 3 (Melee) for 5 troops.");
 
         Lane(st, -30f, "S3-A  FRONT ATTACK",
-            "Press 3 (Melee), press Z to target the enemy, HOLD left-click.\nEXPECT: 2 troops attach in the ring, the others attack from the FRONT. Ring troops show damage 10, front troops 5. Recall a ring troop and a front troop moves into the slot.");
+            "Press 3 (Melee), press Z to target the enemy, HOLD left-click.\nEXPECT: 2 troops attach in the ring, the others attack from the FRONT. Ring troops show damage 10, front troops 5. This enemy is UNAWARE: troops behind it show 30 (backstab). Press N to stun it for 5 seconds: all hits then do double damage. After about 5 seconds attached, it glows yellow and then throws every attached troop off (damage, knockback, gray ball = stunned). Recall troops during the glow to save them.");
         AddEnemy(st, "S3A_Enemy", -30f, -2f, _dummy, 2);
 
         Lane(st, 0f, "S3-B  SLOT NUMBER + HEALTH BAR",
@@ -377,6 +379,33 @@ public static class TestArenaBuilder
         AddKey(pKeys.transform, KeyCode.B, new[] { pen }, null);
     }
 
+    private static void BuildS8()
+    {
+        Transform st = Station("S8_Combat", Gap, -Gap, "S8  ENEMY COMBAT",
+            "Backstab, stun, enemy first strike and shake-off. Press 3 (Melee), press Z to target the enemy, then HOLD left-click.");
+
+        Lane(st, -45f, "S8-A  SHAKE-OFF",
+            "Press 3 (Melee), press Z, HOLD left-click. Wait.\nEXPECT: about 5 seconds after the first troop attaches, the enemy glows yellow for 1.5 seconds, then throws every attached troop away. Thrown troops take damage, slide back and show a gray ball (stunned). Run it again and RECALL (tap right-click) during the glow: that troop is safe.");
+        AddEnemy(st, "S8A_Tank", -45f, -2f, _tank, 5);
+
+        Lane(st, -15f, "S8-B  BACKSTAB",
+            "Press 3 (Melee), press Z, HOLD left-click. Troops arrive from behind the enemy.\nEXPECT: the damage numbers on troops behind it show 30 (3x backstab).");
+        AddEnemy(st, "S8B_Tank", -15f, -2f, _tank, 5);
+
+        Lane(st, 15f, "S8-C  FRONT (NO BACKSTAB)",
+            "Same as S8-B, but this enemy faces YOU.\nEXPECT: damage numbers show 10 (ring) or 5 (front attackers), no 30s. This proves backstab only works from behind.");
+        GameObject facing = AddEnemy(st, "S8C_Tank", 15f, -2f, _tank, 5);
+        if (facing != null) facing.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+
+        Lane(st, 45f, "S8-D  STUN",
+            "Press 3 (Melee), press Z, HOLD left-click. Once troops are hitting it, press N.\nEXPECT: for 5 seconds the numbers double (it is stunned). Pressing N right when the yellow glow starts also cancels the shake-off.");
+        AddEnemy(st, "S8D_Tank", 45f, -2f, _tank, 5);
+
+        Lane(st, 70f, "S8-E  ENEMY HITS FIRST",
+            "TAP left-click once.\nEXPECT: the brute notices the troop, walks to it and hits it almost as soon as it reaches it. The troop gets very little time to strike first.");
+        AddEnemy(st, "S8E_Brute", 70f, -2f, _brute, 3);
+    }
+
     // ---------------------------------------------------------------- builders
 
     private static Transform Station(string name, float wx, float wz, string title, string desc)
@@ -562,7 +591,7 @@ public static class TestArenaBuilder
             if (old != null) UnityEngine.Object.DestroyImmediate(old.gameObject);
         }
 
-        helpPanel = UiPanel(canvas, "ArenaHelpPanel", new Vector2(1f, 1f), new Vector2(-10f, -10f), new Vector2(560f, 380f));
+        helpPanel = UiPanel(canvas, "ArenaHelpPanel", new Vector2(1f, 1f), new Vector2(-10f, -10f), new Vector2(560f, 400f));
         TextMeshProUGUI help = UiText(helpPanel.transform, 15f);
         help.text =
             "<b>CONTROLS</b>\n" +
@@ -576,8 +605,9 @@ public static class TestArenaBuilder
             "Ctrl: HOLD = plan a route (hold LEFT + RIGHT to draw it), RELEASE = save it, TAP = run it\n" +
             "Waypoint ring = capture zone (blue = yours, red = enemy)\n" +
             "Counters: movable = troops still needed (negative = extra), enemy = free attach slots\n" +
+            "N = stun all enemies for 5s (S3 test)\n" +
             "K / L = flip a waypoint (S4)   E = wake enemy (S7)   M = killer (S6)   B = open walls (S7)\n" +
-            "F1 Hub, F2-F8 stations 1-7   H hide help   F12 reset\n" +
+            "F1 Hub, F2-F9 stations 1-8   H hide help   F12 reset\n" +
             "Esc frees the mouse cursor";
 
         hintPanel = UiPanel(canvas, "ArenaHintPanel", new Vector2(0.5f, 1f), new Vector2(0f, -10f), new Vector2(700f, 190f));

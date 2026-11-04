@@ -10,7 +10,7 @@ public class TestArenaHelper : MonoBehaviour
 
     private void Update()
     {
-        for (int i = 0; i < spawns.Length && i < 8; i++)
+        for (int i = 0; i < spawns.Length && i < 9; i++)
             if (Input.GetKeyDown(KeyCode.F1 + i)) Teleport(spawns[i]);
 
         if (helpPanel != null && Input.GetKeyDown(KeyCode.H))
@@ -18,6 +18,9 @@ public class TestArenaHelper : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.F12))
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+
+        if (Input.GetKeyDown(KeyCode.N))
+            foreach (EnemyBase e in FindObjectsOfType<EnemyBase>()) e.Stun(5f);
     }
 
     private void Teleport(Transform spawn)

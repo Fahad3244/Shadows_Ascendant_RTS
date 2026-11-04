@@ -283,7 +283,7 @@ public class SwarmController : MonoBehaviour
 		List<UnitAgent> list = new List<UnitAgent>();
 		foreach (UnitAgent item in (IEnumerable<UnitAgent>)((group == GroupSelection.Custom) ? CustomGroupUnits : unitPool.ActiveAgents))
 		{
-			if (item == null || !item.gameObject.activeInHierarchy || item.CurrentStateEnum == UnitState.Dead || item.CurrentStateEnum == UnitState.AtFlag || item.CurrentStateEnum == UnitState.PickingUp || item.CarriedPickup != null)
+			if (item == null || !item.gameObject.activeInHierarchy || item.CurrentStateEnum == UnitState.Dead || item.CurrentStateEnum == UnitState.AtFlag || item.CurrentStateEnum == UnitState.PickingUp || item.CurrentStateEnum == UnitState.Stunned || item.CarriedPickup != null)
 			{
 				continue;
 			}
@@ -548,7 +548,7 @@ public class SwarmController : MonoBehaviour
 		}
 		foreach (UnitAgent activeAgent in unitPool.ActiveAgents)
 		{
-			if (activeAgent != null && activeAgent.gameObject.activeInHierarchy && !activeAgent.IsReturning && activeAgent.CurrentStateEnum != UnitState.AtFlag)
+			if (activeAgent != null && activeAgent.gameObject.activeInHierarchy && !activeAgent.IsReturning && activeAgent.CurrentStateEnum != UnitState.AtFlag && activeAgent.CurrentStateEnum != UnitState.Stunned && activeAgent.CurrentStateEnum != UnitState.PickingUp)
 			{
 				activeAgent.ReturnToPlayer();
 			}

@@ -555,6 +555,13 @@ public class AttachableTarget : MonoBehaviour
 		}
 	}
 
+	public List<UnitAgent> GetAllAttachedUnits()
+	{
+		List<UnitAgent> all = new List<UnitAgent>(_attachedUnits);
+		all.AddRange(_frontUnits);
+		return all;
+	}
+
 	public void RegisterDamage()
 	{
 		_hasTakenDamage = true;

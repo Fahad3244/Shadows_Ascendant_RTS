@@ -172,6 +172,8 @@ public class UnitInteractState : UnitStateBase
 				{
 					_interactTimer = 0f;
 					float mult = _target.IsFrontAttacker(_agent) ? _target.FrontAttackMultiplier : 1f;
+					EnemyBase enemy = _target.GetComponent<EnemyBase>();
+					if (enemy != null) mult *= enemy.GetDamageMultiplierFrom(_agent.transform.position);
 					DamageInfo info = new DamageInfo
 					{
 						amount = 10f * mult * (1f + _agent.GearDamageBonus),

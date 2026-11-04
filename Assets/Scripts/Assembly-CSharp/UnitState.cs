@@ -8,5 +8,6 @@ public enum UnitState
 	Carrying = 5,
 	Sweeping = 6,
 	Dead = 7,
-	PickingUp = 8
+	PickingUp = 8,
+	Stunned = 9
 }

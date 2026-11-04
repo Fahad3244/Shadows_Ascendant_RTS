@@ -27,6 +27,20 @@ public class EnemyBase : MonoBehaviour
 	[SerializeField]
 	private GameObject lootPrefab;
 
+	[Header("Combat Feel")]
+	[SerializeField, Range(0f, 1f)] private float firstStrikeCharge = 0.7f;
+	[SerializeField] private float backstabMultiplier = 3f;
+	[SerializeField] private float stunnedDamageMultiplier = 2f;
+
+	[Header("Shake-off")]
+	[SerializeField] private bool canShakeOff = true;
+	[SerializeField] private float shakeOffDelay = 5f;
+	[SerializeField] private float shakeOffTelegraph = 1.5f;
+	[SerializeField] private float throwDamage = 15f;
+	[SerializeField] private float knockbackDistance = 4f;
+	[SerializeField] private float troopStunTime = 2.5f;
+	[SerializeField] private Color telegraphColor = new Color(1f, 0.9f, 0.2f);
+
 	[Header("Debug")]
 	[SerializeField]
 	private EnemyState currentState;
@@ -45,6 +59,13 @@ public class EnemyBase : MonoBehaviour
 
 	private Vector3 _startPos;
 
+	private float _attachedTimer;
+	private float _telegraphTimer = -1f;
+	private float _stunnedUntil;
+	private bool _wasStunned;
+	private Renderer[] _renderers;
+	private MaterialPropertyBlock _mpb;
+
 	private const float SCAN_RATE = 0.5f;
 
 	private void Awake()
@@ -53,6 +74,8 @@ public class EnemyBase : MonoBehaviour
 		_navAgent = GetComponent<NavMeshAgent>();
 		_myAttachableSelf = GetComponent<AttachableTarget>();
 		_startPos = base.transform.position;
+		_renderers = GetComponentsInChildren<Renderer>();
+		_mpb = new MaterialPropertyBlock();
 		if (enemyData != null)
 		{
 			_health.Initialize(enemyData.maxHP);
@@ -63,10 +86,11 @@ public class EnemyBase : MonoBehaviour
 
 	private void Update()
 	{
-		if (currentState != EnemyState.Dead)
-		{
-			HandleStateMachine();
-		}
+		if (currentState == EnemyState.Dead) return;
+		if (IsStunned) return;
+		if (_wasStunned) { _wasStunned = false; _navAgent.isStopped = false; }
+		HandleStateMachine();
+		HandleShakeOff();
 	}
 
 	private void HandleStateMachine()
@@ -153,12 +177,87 @@ public class EnemyBase : MonoBehaviour
 		currentState = newState;
 		if (newState == EnemyState.Attacking)
 		{
-			_attackTimer = 0f;
+			_attackTimer = enemyData.attackInterval * firstStrikeCharge;
 		}
 		if (newState == EnemyState.Idle)
 		{
 			_navAgent.isStopped = false;
 		}
+	}
+
+	public bool IsStunned => Time.time < _stunnedUntil;
+	public bool IsUnaware => currentState == EnemyState.Idle;
+
+	public void Stun(float seconds)
+	{
+		if (currentState == EnemyState.Dead) return;
+		_stunnedUntil = Time.time + seconds;
+		_wasStunned = true;
+		_telegraphTimer = -1f;
+		EndGlow();
+		if (_navAgent.isOnNavMesh) _navAgent.isStopped = true;
+	}
+
+	public float GetDamageMultiplierFrom(Vector3 attackerPos)
+	{
+		float m = 1f;
+		if (IsStunned) m *= stunnedDamageMultiplier;
+		if (IsUnaware)
+		{
+			Vector3 to = attackerPos - transform.position;
+			to.y = 0f;
+			if (to.sqrMagnitude > 0.01f && Vector3.Dot(transform.forward, to.normalized) < -0.3f)
+				m *= backstabMultiplier;
+		}
+		return m;
+	}
+
+	private void HandleShakeOff()
+	{
+		if (!canShakeOff) return;
+		if (_telegraphTimer >= 0f)
+		{
+			_telegraphTimer -= Time.deltaTime;
+			float k = (Mathf.Sin(Time.time * 18f) + 1f) * 0.5f;
+			SetGlow(Color.Lerp(Color.white, telegraphColor, k));
+			if (_telegraphTimer < 0f)
+			{
+				EndGlow();
+				PerformShakeOff();
+				_attachedTimer = 0f;
+			}
+			return;
+		}
+		if (_myAttachableSelf.GetAllAttachedUnits().Count > 0)
+		{
+			_attachedTimer += Time.deltaTime;
+			if (_attachedTimer >= shakeOffDelay) _telegraphTimer = shakeOffTelegraph;
+		}
+		else _attachedTimer = 0f;
+	}
+
+	private void PerformShakeOff()
+	{
+		foreach (UnitAgent troop in _myAttachableSelf.GetAllAttachedUnits())
+		{
+			if (troop == null) continue;
+			Vector3 dir = troop.transform.position - transform.position;
+			dir.y = 0f;
+			if (dir.sqrMagnitude < 0.01f) dir = transform.forward;
+			troop.GetThrown(dir.normalized, throwDamage, knockbackDistance, troopStunTime, transform);
+		}
+	}
+
+	private void SetGlow(Color c)
+	{
+		_mpb.SetColor("_BaseColor", c);
+		_mpb.SetColor("_Color", c);
+		foreach (Renderer r in _renderers) if (r != null) r.SetPropertyBlock(_mpb);
+	}
+
+	private void EndGlow()
+	{
+		foreach (Renderer r in _renderers) if (r != null) r.SetPropertyBlock(null);
 	}
 
 	private void Patrol()
