@@ -10605,13 +10605,14 @@ MonoBehaviour:
   playerModel: {fileID: 296}
   targetingManager: {fileID: 861}
   delayManager: {fileID: 854}
-  sendRange: 40
+  sendRange: 25
   pathResolution: 5
   targetReachedRadius: 6
   sweepStoppingDistance: 1.5
+  sweepFollowDistance: 3
   pathDecayTime: 1
   objectSweepSpeed: 25
-  maxSweepLeashDistance: 25
+  maxSweepLeashDistance: 40
   stragglerCatchUpDistance: 6
   stragglerSpeedMultiplier: 1.6
   delayCommandStartOffset: 8

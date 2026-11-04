@@ -47,6 +47,9 @@ public class SwarmController : MonoBehaviour
 	private float sweepStoppingDistance = 1.5f;
 
 	[SerializeField]
+	private float sweepFollowDistance = 3f;
+
+	[SerializeField]
 	private float pathDecayTime = 1.5f;
 
 	[SerializeField]
@@ -105,6 +108,8 @@ public class SwarmController : MonoBehaviour
 	private NavMeshAgent _objectNavAgent;
 
 	private MovableObject _objectMovable;
+
+	private LineRenderer _leashRing;
 
 	private bool _isRecordingDelayCommand;
 
@@ -208,6 +213,7 @@ public class SwarmController : MonoBehaviour
 
 	private void Update()
 	{
+		UpdateLeashRing(PlayerInputManager.Instance != null && PlayerInputManager.Instance.IsSweeping && !_isSystemBusy);
 		if (_isRecordingDelayCommand)
 		{
 			if (_cursor != null && delayManager != null && _cursor.GetWorldPosition(groundLayer, out var worldPos))
@@ -218,6 +224,35 @@ public class SwarmController : MonoBehaviour
 		else
 		{
 			HandleSweepLifecycle();
+		}
+	}
+
+	private void UpdateLeashRing(bool show)
+	{
+		if (_leashRing == null)
+		{
+			if (!show)
+			{
+				return;
+			}
+			_leashRing = new GameObject("SweepRangeRing").AddComponent<LineRenderer>();
+			_leashRing.useWorldSpace = true;
+			_leashRing.loop = true;
+			_leashRing.widthMultiplier = 0.15f;
+			_leashRing.positionCount = 48;
+			_leashRing.material = new Material(Shader.Find("Sprites/Default"));
+			_leashRing.startColor = _leashRing.endColor = new Color(1f, 1f, 1f, 0.5f);
+		}
+		_leashRing.enabled = show;
+		if (!show)
+		{
+			return;
+		}
+		Vector3 c = playerModel.position + Vector3.up * 0.1f;
+		for (int i = 0; i < 48; i++)
+		{
+			float a = i * Mathf.PI * 2f / 48f;
+			_leashRing.SetPosition(i, c + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * maxSweepLeashDistance);
 		}
 	}
 
@@ -777,10 +812,18 @@ public class SwarmController : MonoBehaviour
 			if (item.CurrentStateEnum != UnitState.AtFlag && item.CurrentStateEnum != UnitState.Carrying && item.CurrentStateEnum != UnitState.Interacting)
 			{
 				item.NavAgent.stoppingDistance = sweepStoppingDistance;
-				float distFromTarget = Vector3.Distance(item.transform.position, targetPos);
+				item.LeashDistance = Mathf.Max(item.LeashDistance, maxSweepLeashDistance + 15f);
+
+				Vector3 offset = item.transform.position - targetPos;
+				offset.y = 0f;
+				float distFromTarget = offset.magnitude;
+				Vector3 dest = distFromTarget > sweepFollowDistance
+					? targetPos + offset.normalized * sweepFollowDistance
+					: item.transform.position;
+
 				float speed = (distFromTarget > stragglerCatchUpDistance) ? item.BaseMoveSpeed * stragglerSpeedMultiplier : item.BaseMoveSpeed;
 				item.SuppressScan(sweepScanSuppress);
-				item.MoveTo(targetPos, speed, sweepAcceleration);
+				item.MoveTo(dest, speed, sweepAcceleration);
 			}
 		}
 	}
