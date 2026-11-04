@@ -167,7 +167,7 @@ public static class TestArenaBuilder
         AddEnemy(st, "S2A_Enemy", -30f, -4f, _dummy);
 
         Lane(st, 0f, "S2-B  COMPARE",
-            "First TAP or HOLD left-click: troops stop at the crates and the enemy. Hold RIGHT-click to recall. Now SWEEP through the same objects.\nEXPECT: dispatch stops at things, sweep ignores them.");
+            "First TAP or HOLD left-click: troops stop at the crates and the enemy. Hold RIGHT-click to recall. Now SWEEP through the same objects.\nEXPECT: dispatch stops at things, sweep ignores them. DELAYED ROUTE: hold Ctrl, move the cursor to where the route starts, hold LEFT + RIGHT to draw it, release Ctrl to save it (the line turns green). Later, tap Ctrl to send the troops along it, even if they are fighting.");
         Breakable(st, "S2B_CrateL", -3f, -8f, false, 400f);
         Breakable(st, "S2B_CrateR", 3f, -5f, false, 400f);
         Breakable(st, "S2B_CrateM", 0f, -2f, false, 400f);
