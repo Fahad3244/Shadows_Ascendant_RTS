@@ -21,6 +21,22 @@ public class PlayerUnitManager : MonoBehaviour
 
 	public event Action OnUnitsChanged;
 
+	public float ArmyStrengthPercent
+	{
+		get
+		{
+			if (_allUnits.Count == 0) return 0f;
+			int pieces = 0;
+			foreach (Unit u in _allUnits) pieces += u.gearCount;
+			return Mathf.Clamp((float)pieces / (_allUnits.Count * Unit.MaxGear) * 400f, 0f, 400f);
+		}
+	}
+
+	public void NotifyGearChanged()
+	{
+		OnUnitsChanged?.Invoke();
+	}
+
 	private void Awake()
 	{
 		InitializeStorage();
@@ -55,7 +71,15 @@ public class PlayerUnitManager : MonoBehaviour
 	{
 		if (_freeUnits[type].Count > 0)
 		{
-			unit = _freeUnits[type].Pop();
+			Unit best = null;
+			foreach (Unit u in _freeUnits[type])
+				if (best == null || u.gearCount > best.gearCount) best = u;
+
+			List<Unit> rest = _freeUnits[type].Where(u => u != best).Reverse().ToList();
+			_freeUnits[type].Clear();
+			foreach (Unit u in rest) _freeUnits[type].Push(u);
+
+			unit = best;
 			_activeUnits.Add(unit);
 			this.OnUnitsChanged?.Invoke();
 			return true;

@@ -438,7 +438,13 @@ public class SwarmController : MonoBehaviour
 			return;
 		}
 		List<UnitAgent> activeUnitsByGroup = GetActiveUnitsByGroup(CurrentSelectedGroup);
-		UnitAgent unitAgent = activeUnitsByGroup.Find((UnitAgent a) => a.CurrentStateEnum == UnitState.Idle || a.CurrentStateEnum == UnitState.Returning);
+		UnitAgent unitAgent = null;
+		foreach (UnitAgent a in activeUnitsByGroup)
+		{
+			bool free = a.CurrentStateEnum == UnitState.Idle || a.CurrentStateEnum == UnitState.Returning;
+			if (free && (unitAgent == null || a.GearDamageBonus > unitAgent.GearDamageBonus))
+				unitAgent = a;
+		}
 		if (unitAgent == null)
 		{
 			List<UnitAgent> list = SpawnInactiveUnitsByGroup(CurrentSelectedGroup, 1);
@@ -463,6 +469,7 @@ public class SwarmController : MonoBehaviour
 		{
 			List<UnitAgent> activeUnitsByGroup = GetActiveUnitsByGroup(CurrentSelectedGroup);
 			activeUnitsByGroup.AddRange(SpawnInactiveUnitsByGroup(CurrentSelectedGroup));
+			activeUnitsByGroup.Sort((a, b) => b.GearDamageBonus.CompareTo(a.GearDamageBonus));
 			for (int i = 0; i < activeUnitsByGroup.Count; i++)
 			{
 				IssueCommandToAgent(activeUnitsByGroup[i], i, activeUnitsByGroup.Count);

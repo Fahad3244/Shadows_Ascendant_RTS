@@ -73,6 +73,8 @@ public class PickupFeedbackUI : MonoBehaviour
     private void HandleGearEquipped(UnitAgent troop, PickupItem item)
     {
         ShowPopup(string.Format(equipFormat, item.GearName), gearColor);
+        if (troop != null && troop.Manager != null)
+            ShowPopup("Army strength " + Mathf.RoundToInt(troop.Manager.ArmyStrengthPercent) + "%", gearColor);
     }
 
     private void ShowPopup(string text, Color color)

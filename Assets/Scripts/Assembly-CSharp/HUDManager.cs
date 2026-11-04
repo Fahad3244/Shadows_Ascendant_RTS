@@ -33,6 +33,9 @@ public class HUDManager : MonoBehaviour
 	[SerializeField]
 	private TextMeshProUGUI selectedUnitNameText;
 
+	[SerializeField]
+	private TextMeshProUGUI armyStrengthText;
+
 	private Dictionary<GroupSelection, GroupUIProfile> _profileLookup = new Dictionary<GroupSelection, GroupUIProfile>();
 
 	private void Awake()
@@ -137,6 +140,10 @@ public class HUDManager : MonoBehaviour
 			}
 			float fillAmount = ((unitManager.TotalCount > 0) ? ((float)unitManager.FreeCount / (float)unitManager.TotalCount) : 0f);
 			globalFillBar.fillAmount = fillAmount;
+		}
+		if (armyStrengthText != null)
+		{
+			armyStrengthText.text = Mathf.RoundToInt(unitManager.ArmyStrengthPercent) + "%";
 		}
 	}
 }

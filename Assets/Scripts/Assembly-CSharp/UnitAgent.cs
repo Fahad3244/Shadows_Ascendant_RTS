@@ -98,6 +98,7 @@ public class UnitAgent : MonoBehaviour
 		InternalData.damageBonus += damageBonus;
 		InternalData.gearVisualPrefabs.Add(visualPrefab);
 		RefreshGearVisual();
+		if (Manager != null) Manager.NotifyGearChanged();
 	}
 
 	public void RefreshGearVisual()
