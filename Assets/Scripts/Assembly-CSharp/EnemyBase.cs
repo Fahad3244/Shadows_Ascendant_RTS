@@ -30,7 +30,6 @@ public class EnemyBase : MonoBehaviour
 	[Header("Combat Feel")]
 	[SerializeField, Range(0f, 1f)] private float firstStrikeCharge = 0.7f;
 	[SerializeField] private float backstabMultiplier = 3f;
-	[SerializeField] private float stunnedDamageMultiplier = 2f;
 
 	[Header("Shake-off")]
 	[SerializeField] private bool canShakeOff = true;
@@ -42,8 +41,6 @@ public class EnemyBase : MonoBehaviour
 	[SerializeField] private Color telegraphColor = new Color(1f, 0.9f, 0.2f);
 
 	[Header("Target Priority")]
-	[SerializeField] private float damageSwitchWindow = 3f;
-	[SerializeField] private float damageSwitchMaxRange = 20f;
 	[SerializeField] private float retargetCooldown = 1.5f;
 
 	[Header("Debug")]
@@ -72,7 +69,6 @@ public class EnemyBase : MonoBehaviour
 	private MaterialPropertyBlock _mpb;
 
 	private Transform _lastAttacker;
-	private float _lastDamageTime = -999f;
 	private float _lastRetargetTime = -999f;
 
 	private const float SCAN_RATE = 0.5f;
@@ -151,7 +147,6 @@ public class EnemyBase : MonoBehaviour
 	{
 		if (info.attackerReference == null) return;
 		_lastAttacker = info.attackerReference;
-		_lastDamageTime = Time.time;
 	}
 
 	private Transform ChooseTarget()
@@ -169,17 +164,10 @@ public class EnemyBase : MonoBehaviour
 		}
 		if (cart != null) return cart;
 
-		// 2. most recent damage source
-		if (_lastAttacker != null
-			&& Time.time - _lastDamageTime <= damageSwitchWindow
-			&& IsTargetStillValid(_lastAttacker)
-			&& Vector3.Distance(transform.position, _lastAttacker.position) <= damageSwitchMaxRange)
-			return _lastAttacker;
-
-		// 3. keep the current target while attacking it
+		// 2. keep the current target while attacking it
 		if (currentState == EnemyState.Attacking && IsTargetStillValid(_currentTarget)) return _currentTarget;
 
-		// 4. nearest
+		// 3. nearest
 		return FindNearestTarget();
 	}
 
@@ -260,7 +248,6 @@ public class EnemyBase : MonoBehaviour
 	public float GetDamageMultiplierFrom(Vector3 attackerPos)
 	{
 		float m = 1f;
-		if (IsStunned) m *= stunnedDamageMultiplier;
 		if (IsUnaware)
 		{
 			Vector3 to = attackerPos - transform.position;
@@ -344,7 +331,7 @@ public class EnemyBase : MonoBehaviour
 		foreach (Collider collider2 in array)
 		{
 			float num2 = Vector3.Distance(base.transform.position, collider2.transform.position);
-			if (num2 < num)
+			if (num2 < num - 0.5f || (Mathf.Abs(num2 - num) <= 0.5f && collider2.transform == _lastAttacker))
 			{
 				UnitAgent component = collider2.GetComponent<UnitAgent>();
 				if (!(component == null) && component.CurrentStateEnum != UnitState.Dead)
@@ -358,7 +345,7 @@ public class EnemyBase : MonoBehaviour
 		foreach (Collider collider3 in array)
 		{
 			float num3 = Vector3.Distance(base.transform.position, collider3.transform.position);
-			if (num3 < num)
+			if (num3 < num - 0.5f || (Mathf.Abs(num3 - num) <= 0.5f && collider3.transform == _lastAttacker))
 			{
 				Health component2 = collider3.GetComponent<Health>();
 				if (!(component2 == null) && !component2.IsDead)

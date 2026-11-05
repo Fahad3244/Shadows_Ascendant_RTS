@@ -185,7 +185,7 @@ public static class TestArenaBuilder
             "Attach points, front attackers and health symbols. Press 3 (Melee) for 5 troops.");
 
         Lane(st, -30f, "S3-A  FRONT ATTACK",
-            "Press 3 (Melee), press Z to target the enemy, HOLD left-click.\nEXPECT: 2 troops attach in the ring, the others attack from the FRONT. Ring troops show damage 10, front troops 5. This enemy is UNAWARE: troops behind it show 30 (backstab). Press N to stun it for 5 seconds: all hits then do double damage. After about 5 seconds attached, it glows yellow and then throws every attached troop off (damage, knockback, gray ball = stunned). Recall troops during the glow to save them.");
+            "Press 3 (Melee), press Z to target the enemy, HOLD left-click.\nEXPECT: 2 troops attach in the ring, the others attack from the FRONT. Ring troops show damage 10, front troops 5. This enemy is UNAWARE: troops behind it show 30 (backstab). Press N to stun it for 5 seconds (test key only; stun does not change damage). After about 5 seconds attached, it glows yellow and then throws every attached troop off. Recall troops during the glow to save them.");
         AddEnemy(st, "S3A_Enemy", -30f, -2f, _dummy, 2);
 
         Lane(st, 0f, "S3-B  SLOT NUMBER + HEALTH BAR",
@@ -292,7 +292,7 @@ public static class TestArenaBuilder
         PickupItemAt(st, "TestPotion", "S6A_Potion", -41f, -3f, 0);
 
         Lane(st, -15f, "S6-B  GEAR",
-            "Press 3 (Melee), TAP left-click: that troop pauses a moment to show the item, then equips it (cyan cube above its head). Then press Z to target the dummy and TAP again with the same group.\nEXPECT: the equipped troop deals 15 per hit, other troops 10. Any troop type can equip gear, up to 4 pieces. An 'Army strength' popup shows the percentage.");
+            "Press 3 (Melee), TAP left-click: that troop pauses a moment to show the item, then equips it (cyan cube above its head). Any troop type can equip gear, up to 4 pieces.\nEXPECT: an 'Army strength' popup appears. Gear does not change damage yet.");
         PickupItemAt(st, "TestGear", "S6B_Gear", -15f, -3f, 1);
         PickupItemAt(st, "TestGear", "S6B_Gear2", -11f, -3f, 1);
         PickupItemAt(st, "TestGear", "S6B_Gear3", -19f, -3f, 1);
@@ -403,7 +403,7 @@ public static class TestArenaBuilder
         if (facing != null) facing.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
 
         Lane(st, 9f, "S8-D  STUN",
-            "Press 3 (Melee), press Z, HOLD left-click. Once troops are hitting it, press N.\nEXPECT: for 5 seconds the numbers double (it is stunned). Pressing N right when the yellow glow starts also cancels the shake-off.");
+            "Press 3 (Melee), press Z, HOLD left-click. Once troops are hitting it, press N (test key only).\nEXPECT: for 5 seconds the enemy cannot move or attack and a pending shake-off is cancelled. Damage numbers do NOT change.");
         AddEnemy(st, "S8D_Tank", 9f, -2f, _tank, 5);
 
         Lane(st, 27f, "S8-F  CART FIRST",
@@ -423,8 +423,8 @@ public static class TestArenaBuilder
             AddKey(hk.transform, KeyCode.E, new[] { hunter }, null);
         }
 
-        Lane(st, 45f, "S8-G  LAST ATTACKER",
-            "Press 3 (Melee), TAP left-click twice (two troops).\nEXPECT: the hunter fights back and goes for whichever troop hit it last. The Console 'target -> ...' lines switch between the two troops every couple of seconds.");
+        Lane(st, 45f, "S8-G  NEAREST FIRST",
+            "Press 3 (Melee), TAP left-click twice (two troops).\nEXPECT: the hunter goes for the NEAREST troop. If two troops are about equally close, it prefers the one that hit it last.");
         AddEnemy(st, "S8G_Hunter", 45f, -2f, _hunter, 5);
     }
 
@@ -627,8 +627,7 @@ public static class TestArenaBuilder
             "Ctrl: HOLD = plan a route (hold LEFT + RIGHT to draw it), RELEASE = save it, TAP = run it\n" +
             "Waypoint ring = capture zone (blue = yours, red = enemy)\n" +
             "Counters: movable = troops still needed (negative = extra), enemy = free attach slots\n" +
-            "N = stun all enemies for 5s (S3 test)\n" +
-            "K / L = flip a waypoint (S4)   E = wake enemy (S7)   M = killer (S6)   B = open walls (S7)\n" +
+            "K / L = flip a waypoint (S4)   E = wake enemy (S7, S8)   M = killer (S6)   B = open walls (S7)   N = stun enemies (test only)\n" +
             "F1 Hub, F2-F9 stations 1-8   H hide help   F12 reset\n" +
             "Esc frees the mouse cursor";
 
@@ -709,15 +708,23 @@ public static class TestArenaBuilder
                         EditorUtility.SetDirty(prefab);
                     }
                     SerializedProperty pp = pso.FindProperty("pickupPauseTime");
-                    if (pp != null && !Mathf.Approximately(pp.floatValue, 2f))
+                    if (pp != null && !Mathf.Approximately(pp.floatValue, 1f))
                     {
-                        pp.floatValue = 2f;
+                        pp.floatValue = 1f;
                         pso.ApplyModifiedProperties();
                         EditorUtility.SetDirty(prefab);
                     }
                 }
                 AssetDatabase.SaveAssets();
             }
+        }
+
+        SwarmController swarm = UnityEngine.Object.FindObjectOfType<SwarmController>();
+        if (swarm != null)
+        {
+            SerializedObject sso = new SerializedObject(swarm);
+            SerializedProperty lp = sso.FindProperty("maxSweepLeashDistance");
+            if (lp != null) { lp.floatValue = 25f; sso.ApplyModifiedProperties(); EditorUtility.SetDirty(swarm); }
         }
 
         AddAlwaysIncludedShader("Sprites/Default");

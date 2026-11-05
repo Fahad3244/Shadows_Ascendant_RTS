@@ -90,7 +90,7 @@ public class UnitAgent : MonoBehaviour
 		ScanSuppressedUntil = Time.time + seconds;
 	}
 
-	public float GearDamageBonus => (InternalData != null) ? InternalData.damageBonus : 0f;
+	public float GearDamageBonus => 0f; // gear damage on hold until the client confirms
 
 	public void EquipGear(string gearName, float damageBonus, GameObject visualPrefab)
 	{

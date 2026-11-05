@@ -456,7 +456,7 @@ public class SwarmController : MonoBehaviour
 		foreach (UnitAgent a in activeUnitsByGroup)
 		{
 			bool free = a.CurrentStateEnum == UnitState.Idle || a.CurrentStateEnum == UnitState.Returning;
-			if (free && (unitAgent == null || a.GearDamageBonus > unitAgent.GearDamageBonus))
+			if (free && (unitAgent == null || a.InternalData.gearCount > unitAgent.InternalData.gearCount))
 				unitAgent = a;
 		}
 		if (unitAgent == null)
@@ -483,7 +483,7 @@ public class SwarmController : MonoBehaviour
 		{
 			List<UnitAgent> activeUnitsByGroup = GetActiveUnitsByGroup(CurrentSelectedGroup);
 			activeUnitsByGroup.AddRange(SpawnInactiveUnitsByGroup(CurrentSelectedGroup));
-			activeUnitsByGroup.Sort((a, b) => b.GearDamageBonus.CompareTo(a.GearDamageBonus));
+			activeUnitsByGroup.Sort((a, b) => b.InternalData.gearCount.CompareTo(a.InternalData.gearCount));
 			for (int i = 0; i < activeUnitsByGroup.Count; i++)
 			{
 				IssueCommandToAgent(activeUnitsByGroup[i], i, activeUnitsByGroup.Count);
