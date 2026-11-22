@@ -116,6 +116,7 @@ public class AttachableTarget : MonoBehaviour
 
 	private void AssignSlot(UnitAgent agent)
 	{
+		if (_slotIndex.ContainsKey(agent)) return;
 		if (_unlimitedSlots || maxAttachSlots <= 0)
 		{
 			return;
@@ -200,7 +201,43 @@ public class AttachableTarget : MonoBehaviour
 	private void LogAttach(string msg)
 	{
 		if (!GlobalDebugAttach || _unlimitedSlots) return;
-		Debug.Log($"[Attach] {name}: {msg} | cap={maxAttachSlots} occupied={_attachedUnits.Count} reserved={_incomingUnits.Count} front={_frontUnits.Count}");
+		Debug.Log($"[Attach] {name}: {msg} | cap={maxAttachSlots} occupied={_attachedUnits.Count} reserved={_incomingUnits.Count} front={_frontUnits.Count} points={PointSummary()}");
+	}
+
+	public AttachmentPointState GetPointState(int i)
+	{
+		foreach (KeyValuePair<UnitAgent, int> kv in _slotIndex)
+		{
+			if (kv.Value == i)
+				return _attachedUnits.Contains(kv.Key) ? AttachmentPointState.Occupied : AttachmentPointState.Reserved;
+		}
+		return AttachmentPointState.Available;
+	}
+
+	public bool TryGetReservedPosition(UnitAgent agent, out Vector3 pos)
+	{
+		pos = default;
+		if (_unlimitedSlots || maxAttachSlots <= 0) return false;
+		if (!_slotIndex.TryGetValue(agent, out int i)) return false;
+		pos = SlotWorldPosition(i);
+		return true;
+	}
+
+	private string PointSummary()
+	{
+		System.Text.StringBuilder sb = new System.Text.StringBuilder("[");
+		for (int i = 0; i < maxAttachSlots; i++)
+		{
+			AttachmentPointState s = GetPointState(i);
+			sb.Append(s == AttachmentPointState.Occupied ? 'O' : (s == AttachmentPointState.Reserved ? 'R' : 'A'));
+		}
+		return sb.Append(']').ToString();
+	}
+
+	private Color PointColor(int i)
+	{
+		AttachmentPointState s = GetPointState(i);
+		return s == AttachmentPointState.Occupied ? Color.red : (s == AttachmentPointState.Reserved ? Color.yellow : Color.cyan);
 	}
 
 	public bool CanBeMoved
@@ -362,8 +399,9 @@ public class AttachableTarget : MonoBehaviour
 		if (AvailableSlots > 0)
 		{
 			_incomingUnits.Add(agent);
+			AssignSlot(agent);
 			UpdateUI();
-			LogAttach($"RESERVED ring {agent.name}");
+			LogAttach($"RESERVED ring {agent.name} point={(_slotIndex.TryGetValue(agent, out int s) ? s : -1)}");
 			return true;
 		}
 		if (CanJoinFront)
@@ -414,6 +452,7 @@ public class AttachableTarget : MonoBehaviour
 		if (_incomingUnits.Contains(agent))
 		{
 			_incomingUnits.Remove(agent);
+			_slotIndex.Remove(agent);
 			flag = true;
 		}
 		else if (_attachedUnits.Contains(agent))
@@ -512,12 +551,12 @@ public class AttachableTarget : MonoBehaviour
 				}
 			}
 		}
-		if (_slotIndex.Count > _attachedUnits.Count)
+		if (_slotIndex.Count > _attachedUnits.Count + _incomingUnits.Count)
 		{
 			List<UnitAgent> stale = new List<UnitAgent>();
 			foreach (KeyValuePair<UnitAgent, int> kv in _slotIndex)
 			{
-				if (kv.Key == null || !_attachedUnits.Contains(kv.Key))
+				if (kv.Key == null || (!_attachedUnits.Contains(kv.Key) && !_incomingUnits.Contains(kv.Key)))
 				{
 					stale.Add(kv.Key);
 				}
@@ -632,7 +671,7 @@ public class AttachableTarget : MonoBehaviour
 				float f = (float)i * num * (MathF.PI / 180f);
 				Vector3 vector2 = new Vector3(Mathf.Sin(f), attachPointHeight, Mathf.Cos(f)) * attachRadius;
 				Vector3 vector3 = base.transform.position + vector2;
-				Gizmos.color = ((Application.isPlaying && i < _attachedUnits.Count) ? Color.red : Color.cyan);
+				Gizmos.color = Application.isPlaying ? PointColor(i) : Color.cyan;
 				Gizmos.DrawSphere(vector3, 0.25f);
 				Gizmos.color = new Color(Gizmos.color.r, Gizmos.color.g, Gizmos.color.b, 0.5f);
 				Gizmos.DrawLine(base.transform.position, vector3);

@@ -73,8 +73,22 @@ public class UnitMoveState : UnitStateBase
 			{
 				stoppingDistance = 6f;
 			}
+			else if (TryGetSlotDestination(out Vector3 slotPos))
+			{
+				if (_agent.NavAgent.isOnNavMesh) _agent.NavAgent.SetDestination(slotPos);
+				stoppingDistance = 0.4f;
+			}
 			_agent.NavAgent.stoppingDistance = stoppingDistance;
 		}
+	}
+
+	private bool TryGetSlotDestination(out Vector3 pos)
+	{
+		pos = default;
+		if (_targetEntity == null) return false;
+		if (_agent.Type == UnitType.Ranged && _targetEntity.Team == TargetTeam.Enemy) return false;
+		if (_targetEntity.IsFrontAttacker(_agent)) return false;
+		return _targetEntity.TryGetReservedPosition(_agent, out pos);
 	}
 
 	public override void Enter()
@@ -123,6 +137,12 @@ public class UnitMoveState : UnitStateBase
 					}
 				}
 			}
+		}
+		if (_targetEntity != null && !_hasRequestedAttach && _agent.NavAgent.isOnNavMesh
+			&& TryGetSlotDestination(out Vector3 slotPos)
+			&& Vector3.Distance(_agent.NavAgent.destination, slotPos) > 0.75f)
+		{
+			_agent.NavAgent.SetDestination(slotPos);
 		}
 		if (!_agent.NavAgent.pathPending && _agent.NavAgent.remainingDistance <= _agent.NavAgent.stoppingDistance)
 		{
