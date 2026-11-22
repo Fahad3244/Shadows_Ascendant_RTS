@@ -239,7 +239,7 @@ public class UnitAgent : MonoBehaviour
 		ClearReservation();
 		((UnitStunnedState)_states[UnitState.Stunned]).Setup(direction, knockback, stunSeconds);
 		ChangeState(UnitState.Stunned);
-		_health.TakeDamage(new DamageInfo { amount = damage, attackerReference = source, type = DamageType.Normal });
+		_health.TakeDamage(new DamageInfo { amount = damage, attackerReference = source, type = DamageType.Normal, attackType = AttackType.Heavy });
 	}
 
 	public void Despawn()

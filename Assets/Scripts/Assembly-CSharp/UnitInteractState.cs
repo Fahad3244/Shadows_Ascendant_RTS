@@ -180,7 +180,8 @@ public class UnitInteractState : UnitStateBase
 					{
 						amount = 10f * mult * (1f + _agent.GearDamageBonus),
 						attackerReference = _agent.transform,
-						type = DamageType.Normal
+						type = DamageType.Normal,
+						attackType = _agent.Type == UnitType.Ranged ? AttackType.Light : AttackType.Attachment
 					};
 					component.TakeDamage(info);
 					if (_agent.Type == UnitType.Ranged)

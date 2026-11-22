@@ -340,6 +340,11 @@ MonoBehaviour:
   frontArcAngle: 90
   uiPrefab: {fileID: 114703437598541787, guid: 03ac48682d68d27499ac427467be48cc, type: 3}
   uiOffset: {x: 0, y: 2, z: 0}
+  requirementColor: {r: 0.6, g: 0.6, b: 0.6, a: 1}
+  metColor: {r: 0.2, g: 0.5, b: 1, a: 1}
+  underAttackLinger: 3
+  unlimitedRingSlots: 8
+  unlimitedRingSpacing: 0.8
 --- !u!136 &4173483056659595421
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -383,6 +388,16 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 1024
   lootPrefab: {fileID: 1709254077376921, guid: ce73cbc24db540b498d5c57eeb3bb6cb, type: 3}
+  firstStrikeCharge: 0.7
+  backstabMultiplier: 3
+  canShakeOff: 1
+  shakeOffDelay: 5
+  shakeOffTelegraph: 1.5
+  throwDamage: 15
+  knockbackDistance: 4
+  troopStunTime: 2.5
+  telegraphColor: {r: 1, g: 0.9, b: 0.2, a: 1}
+  retargetCooldown: 1.5
   currentState: 0
 --- !u!114 &6960435264673697816
 MonoBehaviour:
@@ -396,6 +411,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e4a0c897508b2a5f6975d27d086bd3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  debugDamage: 1
   OnDeath:
     m_PersistentCalls:
       m_Calls: []

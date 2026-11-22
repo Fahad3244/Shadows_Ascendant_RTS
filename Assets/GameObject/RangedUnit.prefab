@@ -903,6 +903,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e4a0c897508b2a5f6975d27d086bd3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  debugDamage: 1
   OnDeath:
     m_PersistentCalls:
       m_Calls: []

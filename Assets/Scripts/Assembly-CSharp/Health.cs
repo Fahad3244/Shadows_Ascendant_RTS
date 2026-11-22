@@ -4,6 +4,10 @@ using UnityEngine.Events;
 
 public class Health : MonoBehaviour
 {
+	[SerializeField] private bool debugDamage;
+
+	public static bool GlobalDebugDamage = true; // temporary, remove at the end of Phase 1
+
 	public UnityEvent OnDeath;
 
 	public float MaxHP { get; private set; }
@@ -28,6 +32,8 @@ public class Health : MonoBehaviour
 	{
 		if (!IsDead)
 		{
+			if (debugDamage || GlobalDebugDamage)
+				Debug.Log($"[Damage] {info.attackerReference?.name} -> {name}: {info.amount} ({info.attackType}, heavy={info.IsHeavy})");
 			CurrentHP -= info.amount;
 			this.OnDamaged?.Invoke(info);
 			OnHealthChanged?.Invoke(CurrentHP, MaxHP);

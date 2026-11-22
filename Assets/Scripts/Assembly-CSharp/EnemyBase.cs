@@ -390,7 +390,8 @@ public class EnemyBase : MonoBehaviour
 		{
 			amount = enemyData.attackDamage,
 			attackerReference = base.transform,
-			type = DamageType.Normal
+			type = DamageType.Normal,
+			attackType = AttackType.Light
 		};
 		component.TakeDamage(info);
 	}
