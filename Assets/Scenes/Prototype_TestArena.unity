@@ -13266,6 +13266,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9902832cf861c8a8af2ed6ee091dda0f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  settings: {fileID: 11400000, guid: bbb8f2ff06884dc0b970744654554e9a, type: 2}
   maxAttachSlots: 3
   attachRadius: 1.5
   attachPointHeight: 0.75
@@ -27346,6 +27347,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9902832cf861c8a8af2ed6ee091dda0f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  settings: {fileID: 11400000, guid: 0ac4e9501a69462583ee7a2fba8c5fb7, type: 2}
   maxAttachSlots: 2
   attachRadius: 1.5
   attachPointHeight: 0.75
@@ -53228,6 +53230,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9902832cf861c8a8af2ed6ee091dda0f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  settings: {fileID: 11400000, guid: 7684620718fa4d5c89512eaebdc35d6f, type: 2}
   maxAttachSlots: 5
   attachRadius: 1.5
   attachPointHeight: 0.75

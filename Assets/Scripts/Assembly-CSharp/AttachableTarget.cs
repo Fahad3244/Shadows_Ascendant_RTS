@@ -8,6 +8,10 @@ using UnityEngine.AI;
 public class AttachableTarget : MonoBehaviour
 {
 	[Header("Configuration")]
+	[Tooltip("Optional. If set, overrides Max Attach Slots.")]
+	[SerializeField]
+	private AttachmentSettings settings;
+
 	[SerializeField]
 	private int maxAttachSlots = 5;
 
@@ -179,6 +183,8 @@ public class AttachableTarget : MonoBehaviour
 
 	public float AttachRadius => attachRadius;
 
+	public int MaxSlots => maxAttachSlots;
+
 	public bool HasFreeSlots => AvailableSlots > 0;
 
 	public int AttachedUnitCount => _attachedUnits.Count;
@@ -255,6 +261,10 @@ public class AttachableTarget : MonoBehaviour
 
 	private void Awake()
 	{
+		if (settings != null)
+		{
+			maxAttachSlots = settings.maxAttachmentPoints;
+		}
 		_baseTarget = GetComponent<TargetableEntity>();
 		_health = GetComponent<Health>();
 		_ptm = UnityEngine.Object.FindObjectOfType<PlayerTargetingManager>();
@@ -264,6 +274,7 @@ public class AttachableTarget : MonoBehaviour
 			_lastLabel = null;
 			UpdateUI();
 		}
+		Debug.Log($"[Attach] {name} capacity = {maxAttachSlots}");
 	}
 
 	private void LateUpdate()
