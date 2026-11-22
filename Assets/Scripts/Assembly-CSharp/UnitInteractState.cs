@@ -173,7 +173,8 @@ public class UnitInteractState : UnitStateBase
 				if (_interactTimer >= 1f)
 				{
 					_interactTimer = 0f;
-					float mult = _target.IsFrontAttacker(_agent) ? _target.FrontAttackMultiplier : 1f;
+					bool isFront = _target.IsFrontAttacker(_agent);
+					float mult = isFront ? _target.FrontAttackMultiplier : 1f;
 					EnemyBase enemy = _target.GetComponent<EnemyBase>();
 					if (enemy != null) mult *= enemy.GetDamageMultiplierFrom(_agent.transform.position);
 					DamageInfo info = new DamageInfo
@@ -181,7 +182,7 @@ public class UnitInteractState : UnitStateBase
 						amount = 10f * mult * (1f + _agent.GearDamageBonus),
 						attackerReference = _agent.transform,
 						type = DamageType.Normal,
-						attackType = _agent.Type == UnitType.Ranged ? AttackType.Light : AttackType.Attachment
+						attackType = (_agent.Type == UnitType.Ranged || isFront) ? AttackType.Light : AttackType.Attachment
 					};
 					component.TakeDamage(info);
 					if (_agent.Type == UnitType.Ranged)

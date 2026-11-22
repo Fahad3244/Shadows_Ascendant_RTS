@@ -189,6 +189,20 @@ public class AttachableTarget : MonoBehaviour
 
 	public int AttachedUnitCount => _attachedUnits.Count;
 
+	public int OccupiedCount => _attachedUnits.Count;
+
+	public int ReservedCount => _incomingUnits.Count;
+
+	public int FrontCount => _frontUnits.Count;
+
+	public static bool GlobalDebugAttach = true; // temporary, remove at the end of Phase 1
+
+	private void LogAttach(string msg)
+	{
+		if (!GlobalDebugAttach || _unlimitedSlots) return;
+		Debug.Log($"[Attach] {name}: {msg} | cap={maxAttachSlots} occupied={_attachedUnits.Count} reserved={_incomingUnits.Count} front={_frontUnits.Count}");
+	}
+
 	public bool CanBeMoved
 	{
 		get
@@ -248,6 +262,7 @@ public class AttachableTarget : MonoBehaviour
 		_attachedUnits.Add(agent);
 		AssignSlot(agent);
 		UpdateUI();
+		LogAttach($"PROMOTED front->ring {agent.name}");
 		return true;
 	}
 
@@ -348,13 +363,13 @@ public class AttachableTarget : MonoBehaviour
 		{
 			_incomingUnits.Add(agent);
 			UpdateUI();
+			LogAttach($"RESERVED ring {agent.name}");
 			return true;
 		}
 		if (CanJoinFront)
 		{
 			if (_frontUnits.Count == 0)
 			{
-				// Lock the arc direction toward where the first front troop arrived from
 				Vector3 d = agent.transform.position - transform.position;
 				d.y = 0f;
 				_frontAnchorDir = d.sqrMagnitude > 0.01f ? d.normalized : transform.forward;
@@ -366,8 +381,10 @@ public class AttachableTarget : MonoBehaviour
 			}
 			_frontSlotIndex[agent] = idx;
 			_frontUnits.Add(agent);
+			LogAttach($"RESERVED front {agent.name}");
 			return true;
 		}
+		LogAttach($"REJECTED {agent.name} (full)");
 		return false;
 	}
 
@@ -375,6 +392,7 @@ public class AttachableTarget : MonoBehaviour
 	{
 		if (_frontUnits.Contains(agent))
 		{
+			LogAttach($"ATTACHED front {agent.name}");
 			agent.OnAttachedToTarget(this);
 			return;
 		}
@@ -383,6 +401,7 @@ public class AttachableTarget : MonoBehaviour
 			_incomingUnits.Remove(agent);
 			_attachedUnits.Add(agent);
 			AssignSlot(agent);
+			LogAttach($"ATTACHED ring {agent.name}");
 			agent.OnAttachedToTarget(this);
 			UpdateUI();
 			CheckMoveState();
@@ -412,6 +431,7 @@ public class AttachableTarget : MonoBehaviour
 		if (flag)
 		{
 			UpdateUI();
+			LogAttach($"RELEASED {agent.name}");
 		}
 	}
 
