@@ -9,6 +9,12 @@ public class PlayerUnitManager : MonoBehaviour
 	[SerializeField]
 	private int initialTotalUnits = 20;
 
+	[Header("Troop Health (Melee < Ranged < Medic < Builder)")]
+	[SerializeField] private int meleeHealth = 60;
+	[SerializeField] private int rangedHealth = 90;
+	[SerializeField] private int medicHealth = 100;
+	[SerializeField] private int builderHealth = 140;
+
 	private Dictionary<UnitType, Stack<Unit>> _freeUnits = new Dictionary<UnitType, Stack<Unit>>();
 
 	private List<Unit> _allUnits = new List<Unit>();
@@ -29,6 +35,18 @@ public class PlayerUnitManager : MonoBehaviour
 			int pieces = 0;
 			foreach (Unit u in _allUnits) pieces += u.gearCount;
 			return Mathf.Clamp((float)pieces / (_allUnits.Count * Unit.MaxGear) * 400f, 0f, 400f);
+		}
+	}
+
+	public int HealthFor(UnitType type)
+	{
+		switch (type)
+		{
+			case UnitType.Melee: return meleeHealth;
+			case UnitType.Ranged: return rangedHealth;
+			case UnitType.Medic: return medicHealth;
+			case UnitType.Builder: return builderHealth;
+			default: return 100;
 		}
 	}
 
@@ -60,6 +78,7 @@ public class PlayerUnitManager : MonoBehaviour
 			for (int i = 0; i < num; i++)
 			{
 				Unit item = new Unit(value);
+				item.health = HealthFor(value);
 				_allUnits.Add(item);
 				_freeUnits[value].Push(item);
 			}
@@ -108,7 +127,7 @@ public class PlayerUnitManager : MonoBehaviour
 		if (_activeUnits.Contains(unit))
 		{
 			_activeUnits.Remove(unit);
-			unit.health = 100;
+			unit.health = HealthFor(unit.type);
 			_freeUnits[unit.type].Push(unit);
 			this.OnUnitsChanged?.Invoke();
 		}

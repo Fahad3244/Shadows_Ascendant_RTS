@@ -87,5 +87,26 @@ public class EnemyDebugLabel : MonoBehaviour
 			_style.normal.textColor = c;
 			GUI.Label(r, text, _style);
 		}
+		UnitPoolHealthBox(nearest);
+	}
+
+	private void UnitPoolHealthBox(EnemyBase nearest)
+	{
+		PlayerUnitManager um = FindObjectOfType<PlayerUnitManager>();
+		string t = "HEALTH\n";
+		if (um != null)
+			t += "Melee " + um.HealthFor(UnitType.Melee) + " | Ranged " + um.HealthFor(UnitType.Ranged) +
+				 " | Medic " + um.HealthFor(UnitType.Medic) + " | Builder " + um.HealthFor(UnitType.Builder) + "\n";
+		if (_player != null)
+		{
+			Health ph = _player.GetComponent<Health>();
+			if (ph != null) t += "Player " + ph.CurrentHP.ToString("F0") + "/" + ph.MaxHP.ToString("F0") + "\n";
+		}
+		if (nearest != null)
+		{
+			Health eh = nearest.GetComponent<Health>();
+			if (eh != null) t += nearest.name + " " + eh.CurrentHP.ToString("F0") + "/" + eh.MaxHP.ToString("F0");
+		}
+		GUI.Box(new Rect(10, 262, 520, 80), t, _box);
 	}
 }
