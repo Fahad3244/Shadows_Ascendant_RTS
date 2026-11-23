@@ -16,6 +16,7 @@ public static class TestArenaBuilder
     private static float _playerY = 0.1f;
     private static float _groundY = 0.72f;
     private static EnemyData _dummy, _weak, _brute, _killer, _tank, _hunter;
+    private static EnemyData _mini, _boss;
     private static readonly List<Transform> Spawns = new List<Transform>();
     private static readonly Dictionary<string, Material> Mats = new Dictionary<string, Material>();
     private static readonly Dictionary<int, AttachmentSettings> AttachBySlots = new Dictionary<int, AttachmentSettings>();
@@ -63,6 +64,12 @@ public static class TestArenaBuilder
         _killer = MakeEnemyData("EnemyData_Killer", 100f, 200f, 10f, 1f, 0.3f, 3.5f);
         _tank = MakeEnemyData("EnemyData_Tank", 5000f, 0f, 0.5f, 0f, 1.5f, 1f);
         _hunter = MakeEnemyData("EnemyData_Hunter", 800f, 10f, 10f, 1f, 1.2f, 3.5f);
+        _mini = MakeEnemyData("EnemyData_Miniboss", 1500f, 40f, 10f, 1f, 1.2f, 3.5f);
+        _boss = MakeEnemyData("EnemyData_Boss", 3000f, 60f, 12f, 1f, 1.5f, 3.5f);
+        _mini.attackRange = 4f;
+        _boss.attackRange = 5f;
+        EditorUtility.SetDirty(_mini);
+        EditorUtility.SetDirty(_boss);
         _dummy.passive = true;
         _tank.passive = true;
         EditorUtility.SetDirty(_dummy);
@@ -469,6 +476,14 @@ public static class TestArenaBuilder
         Lane(st, 45f, "S8-G  NEAREST FIRST",
             "Press 3 (Melee), TAP left-click twice (two troops).\nEXPECT: the hunter goes for the NEAREST troop. If two troops are about equally close, it prefers the one that hit it last.");
         AddEnemy(st, "S8G_Hunter", 45f, -2f, _hunter, 5);
+
+        Lane(st, 63f, "S8-H  MINIBOSS (5 POINTS)",
+            "Press 3 (Melee), press Z, HOLD left-click.\nEXPECT: it is clearly bigger than you. The number shows 5 and 5 troops fit around it without overlapping. It has 1500 HP (see the HEALTH box). It hits hard, so expect losses.");
+        AddBigEnemy(st, "S8H_Miniboss", 63f, -2f, _mini, 5, 1.6f, 2.6f, 3.8f, 5f);
+
+        Lane(st, 81f, "S8-I  BOSS (6 POINTS)",
+            "Press 3 (Melee), press Z, HOLD left-click.\nEXPECT: it is the biggest enemy. The number shows 6 and 6 troops fit around it. It has 3000 HP.");
+        AddBigEnemy(st, "S8I_Boss", 81f, -2f, _boss, 6, 2.2f, 3.4f, 5f, 7f);
     }
 
     // ---------------------------------------------------------------- builders
@@ -545,6 +560,18 @@ public static class TestArenaBuilder
         Set<AttachableTarget>(e, "maxAttachSlots", slots);
         Set<AttachableTarget>(e, "settings", AttachFor(slots));
         Set<AttachableTarget>(e, "requiredUnitsToMove", 0);
+        return e;
+    }
+
+    private static GameObject AddBigEnemy(Transform st, string name, float x, float z, EnemyData data, int slots, float scale, float ring, float front, float uiHeight)
+    {
+        GameObject e = AddEnemy(st, name, x, z, data, slots);
+        if (e == null) return null;
+        e.transform.localScale = Vector3.one * scale;
+        Set<AttachableTarget>(e, "attachRadius", ring);
+        Set<AttachableTarget>(e, "frontRadius", front);
+        Set<AttachableTarget>(e, "uiOffset", new Vector3(0f, uiHeight, 0f));
+        Set<AttachableTarget>(e, "maxFrontAttackers", 6);
         return e;
     }
 
@@ -844,6 +871,7 @@ public static class TestArenaBuilder
         else if (value is bool b) p.boolValue = b;
         else if (value is int i) { if (p.propertyType == SerializedPropertyType.Enum) p.enumValueIndex = i; else p.intValue = i; }
         else if (value is float f) p.floatValue = f;
+        else if (value is Vector3 v3) p.vector3Value = v3;
         else if (value is string s) p.stringValue = s;
         so.ApplyModifiedProperties();
     }

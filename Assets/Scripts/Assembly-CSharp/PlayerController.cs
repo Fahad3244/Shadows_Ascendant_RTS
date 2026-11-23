@@ -165,7 +165,8 @@ public class PlayerController : MonoBehaviour
 	private void HandleStrategyMovement()
 	{
 		float b;
-		if (targetingManager != null && targetingManager.CurrentTarget != null && targetingManager.CurrentTarget as Object != null)
+		if (targetingManager != null && targetingManager.CurrentTarget != null && targetingManager.CurrentTarget as Object != null
+			&& Vector3.Distance(targetingManager.CurrentTarget.GetTransform().position, base.transform.position) > 2f)
 		{
 			Vector3 vector = targetingManager.CurrentTarget.GetTransform().position - base.transform.position;
 			vector.y = 0f;

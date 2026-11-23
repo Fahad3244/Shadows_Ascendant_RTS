@@ -33,7 +33,7 @@ public class PlayerAttachment : MonoBehaviour
 	private Vector3 PointPos(int i)
 	{
 		float a = (i * 360f / maxPoints + 45f) * Mathf.Deg2Rad;
-		return transform.position + transform.rotation * (new Vector3(Mathf.Sin(a), 0f, Mathf.Cos(a)) * radius);
+		return transform.position + new Vector3(Mathf.Sin(a), 0f, Mathf.Cos(a)) * radius;
 	}
 
 	private void Prune()
