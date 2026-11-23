@@ -150,6 +150,8 @@ public class PlayerAttachment : MonoBehaviour
 			GameObject g = Instantiate(tpl.gameObject, p, Quaternion.LookRotation(transform.position - p));
 			g.name = "TestSpawn_" + i;
 			g.SetActive(true);
+			EnemyBase spawned = g.GetComponent<EnemyBase>();
+			if (spawned != null) spawned.SetIgnorePlayer(false);
 			_spawned[i] = g;
 		}
 	}

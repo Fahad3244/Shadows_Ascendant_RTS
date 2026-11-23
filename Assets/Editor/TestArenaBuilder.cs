@@ -467,6 +467,7 @@ public static class TestArenaBuilder
         GameObject hunter = AddEnemy(st, "S8F_Hunter", 27f, 4f, _hunter, 5);
         if (hunter != null)
         {
+            Set<EnemyBase>(hunter, "ignorePlayer", true);
             hunter.SetActive(false);
             GameObject hk = new GameObject("S8F_Keys");
             hk.transform.SetParent(st, false);
@@ -475,7 +476,8 @@ public static class TestArenaBuilder
 
         Lane(st, 45f, "S8-G  NEAREST FIRST",
             "Press 3 (Melee), TAP left-click twice (two troops).\nEXPECT: the hunter goes for the NEAREST troop. If two troops are about equally close, it prefers the one that hit it last.");
-        AddEnemy(st, "S8G_Hunter", 45f, -2f, _hunter, 5);
+        hunter = AddEnemy(st, "S8G_Hunter", 45f, -2f, _hunter, 5);
+        if (hunter != null) Set<EnemyBase>(hunter, "ignorePlayer", true);
 
         Lane(st, 63f, "S8-H  MINIBOSS (5 POINTS)",
             "Press 3 (Melee), press Z, HOLD left-click.\nEXPECT: it is clearly bigger than you. The number shows 5 and 5 troops fit around it without overlapping. It has 1500 HP (see the HEALTH box). It hits hard, so expect losses.");
@@ -484,6 +486,18 @@ public static class TestArenaBuilder
         Lane(st, 81f, "S8-I  BOSS (6 POINTS)",
             "Press 3 (Melee), press Z, HOLD left-click.\nEXPECT: it is the biggest enemy. The number shows 6 and 6 troops fit around it. It has 3000 HP.");
         AddBigEnemy(st, "S8I_Boss", 81f, -2f, _boss, 6, 2.2f, 3.4f, 5f, 7f);
+
+        Lane(st, 99f, "S8-J  COMBINED TEST",
+            "1 Press Z, press 3, TAP once: COUNTERED.\n" +
+            "2 HOLD left-click: OVERWHELMED, 4 ring + 1 front troop.\n" +
+            "3 Press N: STUNNED, shake-off PAUSED, troops stay attached.\n" +
+            "4 TAP right-click: freed point gets reused.\n" +
+            "5 After the stun ends: it glows, then throws.\n" +
+            "6 F12, walk behind it, tap: BYPASS BACK.\n" +
+            "7 Press Y: 6 enemies, [OOOO], no camera spin.");
+        GameObject combo = AddEnemy(st, "S8J_Hunter", 99f, -2f, _hunter, 4);
+        if (combo != null) Set<EnemyBase>(combo, "ignorePlayer", true);
+        if (combo != null) combo.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
     }
 
     // ---------------------------------------------------------------- builders
@@ -702,7 +716,7 @@ public static class TestArenaBuilder
             "F1 Hub, F2-F9 stations 1-8   H hide help   F12 reset\n" +
             "Esc frees the mouse cursor";
 
-        hintPanel = UiPanel(canvas, "ArenaHintPanel", new Vector2(0.5f, 1f), new Vector2(0f, -10f), new Vector2(700f, 190f));
+        hintPanel = UiPanel(canvas, "ArenaHintPanel", new Vector2(0.5f, 1f), new Vector2(0f, -10f), new Vector2(700f, 320f));
         hintLabel = UiText(hintPanel.transform, 18f);
         hintLabel.text = "";
         hintPanel.SetActive(false);

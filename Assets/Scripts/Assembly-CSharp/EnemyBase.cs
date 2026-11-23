@@ -56,6 +56,11 @@ public class EnemyBase : MonoBehaviour
 	[SerializeField] private float unattachedDamageMultiplier = 0.5f;
 	private int _pointIndex = -1;
 
+	[Header("Test")]
+	[Tooltip("Test lanes only: enemy never targets the player, only troops.")]
+	[SerializeField] private bool ignorePlayer;
+	public void SetIgnorePlayer(bool v) { ignorePlayer = v; }
+
 	[Header("Shake-off")]
 	[SerializeField] private bool canShakeOff = true;
 	[SerializeField] private float shakeOffDelay = 5f;
@@ -476,7 +481,7 @@ public class EnemyBase : MonoBehaviour
 				}
 			}
 		}
-		array = Physics.OverlapSphere(base.transform.position, enemyData.aggroRange, playerLayer);
+		array = ignorePlayer ? new Collider[0] : Physics.OverlapSphere(base.transform.position, enemyData.aggroRange, playerLayer);
 		foreach (Collider collider3 in array)
 		{
 			float num3 = Vector3.Distance(base.transform.position, collider3.transform.position);
