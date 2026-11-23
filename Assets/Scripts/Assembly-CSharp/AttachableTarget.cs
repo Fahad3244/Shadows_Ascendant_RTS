@@ -198,11 +198,9 @@ public class AttachableTarget : MonoBehaviour
 
 	public int FrontCount => _frontUnits.Count;
 
-	public static bool GlobalDebugAttach = true; // temporary, remove at the end of Phase 1
-
 	private void LogAttach(string msg)
 	{
-		if (!GlobalDebugAttach || _unlimitedSlots) return;
+		if (!CombatDebug.Enabled || _unlimitedSlots) return;
 		Debug.Log($"[Attach] {name}: {msg} | cap={maxAttachSlots} occupied={_attachedUnits.Count} reserved={_incomingUnits.Count} front={_frontUnits.Count} points={PointSummary()}");
 	}
 
@@ -360,7 +358,6 @@ public class AttachableTarget : MonoBehaviour
 			_lastLabel = null;
 			UpdateUI();
 		}
-		Debug.Log($"[Attach] {name} capacity = {maxAttachSlots}");
 	}
 
 	private void LateUpdate()

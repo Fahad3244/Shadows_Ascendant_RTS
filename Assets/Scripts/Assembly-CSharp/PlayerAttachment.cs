@@ -17,7 +17,6 @@ public class PlayerAttachment : MonoBehaviour
 	private bool[] _occupied;
 	private GameObject[] _spawned = new GameObject[0];
 	private Health _health;
-	private GUIStyle _style;
 
 	public int Capacity => _slot.Length;
 
@@ -67,7 +66,7 @@ public class PlayerAttachment : MonoBehaviour
 		if (best < 0) return false;
 		_slot[best] = e;
 		_occupied[best] = false;
-		Debug.Log($"[PlayerAttach] RESERVED point {best} for {e.name} {Summary()}");
+		if (CombatDebug.Enabled) Debug.Log($"[PlayerAttach] RESERVED point {best} for {e.name} {Summary()}");
 		return true;
 	}
 
@@ -78,7 +77,7 @@ public class PlayerAttachment : MonoBehaviour
 			if (_slot[i] == e && !_occupied[i])
 			{
 				_occupied[i] = true;
-				Debug.Log($"[PlayerAttach] ATTACHED {e.name} point {i} {Summary()}");
+				if (CombatDebug.Enabled) Debug.Log($"[PlayerAttach] ATTACHED {e.name} point {i} {Summary()}");
 			}
 		}
 	}
@@ -91,7 +90,7 @@ public class PlayerAttachment : MonoBehaviour
 			{
 				_slot[i] = null;
 				_occupied[i] = false;
-				Debug.Log($"[PlayerAttach] RELEASED {e.name} point {i} {Summary()}");
+				if (CombatDebug.Enabled) Debug.Log($"[PlayerAttach] RELEASED {e.name} point {i} {Summary()}");
 			}
 		}
 	}
@@ -112,7 +111,7 @@ public class PlayerAttachment : MonoBehaviour
 		return sb.Append(']').ToString();
 	}
 
-	private int OccupiedCount()
+	public int OccupiedCount()
 	{
 		int n = 0;
 		for (int i = 0; i < _slot.Length; i++) if (_occupied[i]) n++;
@@ -154,13 +153,6 @@ public class PlayerAttachment : MonoBehaviour
 			if (spawned != null) spawned.SetIgnorePlayer(false);
 			_spawned[i] = g;
 		}
-	}
-
-	private void OnGUI()
-	{
-		if (_style == null) _style = new GUIStyle(GUI.skin.box) { fontSize = 16, alignment = TextAnchor.UpperLeft };
-		GUI.Box(new Rect(10, 200, 380, 52),
-			"PLAYER ATTACH  " + Summary() + "   attached: " + OccupiedCount() + "/" + _slot.Length + "\nY = spawn / remove 6 test enemies", _style);
 	}
 
 	private void OnDrawGizmosSelected()

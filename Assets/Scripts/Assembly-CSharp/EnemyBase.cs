@@ -129,7 +129,7 @@ public class EnemyBase : MonoBehaviour
 			_wasStunned = false;
 			_navAgent.isStopped = false;
 			_attachedTimer = 0f;
-			Debug.Log($"[Stun] {name} recovered (attached={AttachedCount})");
+			if (CombatDebug.Enabled) Debug.Log($"[Stun] {name} recovered (attached={AttachedCount})");
 		}
 		HandleStateMachine();
 		HandleShakeOff();
@@ -373,7 +373,7 @@ public class EnemyBase : MonoBehaviour
 
 		LastDefense = result;
 		LastDefenseTime = Time.time;
-		Debug.Log($"[Defense] {name} vs {troop.name}: {result} (dir={dir}, engaged={engagedCount})");
+		if (CombatDebug.Enabled) Debug.Log($"[Defense] {name} vs {troop.name}: {result} (dir={dir}, engaged={engagedCount})");
 		return countered;
 	}
 
@@ -386,7 +386,7 @@ public class EnemyBase : MonoBehaviour
 		_telegraphTimer = -1f;
 		EndGlow();
 		if (_navAgent.isOnNavMesh) _navAgent.isStopped = true;
-		if (!already) Debug.Log($"[Stun] {name} stunned for {seconds}s (attached={AttachedCount})");
+		if (!already && CombatDebug.Enabled) Debug.Log($"[Stun] {name} stunned for {seconds}s (attached={AttachedCount})");
 	}
 
 	public float GetDamageMultiplierFrom(Vector3 attackerPos)

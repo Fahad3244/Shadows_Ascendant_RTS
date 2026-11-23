@@ -68,7 +68,7 @@ public class HumanPlayerTarget : MonoBehaviour
 		}
 		LastResult += $"  dot={dot:F2} yaw={yaw}";
 		_lastTime = Time.time;
-		Debug.Log($"[Human] {name} vs {troop.name}: {LastResult}");
+		if (CombatDebug.Enabled) Debug.Log($"[Human] {name} vs {troop.name}: {LastResult}");
 		return blocked;
 	}
 

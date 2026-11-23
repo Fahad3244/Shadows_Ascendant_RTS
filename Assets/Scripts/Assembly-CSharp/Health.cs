@@ -6,8 +6,6 @@ public class Health : MonoBehaviour
 {
 	[SerializeField] private bool debugDamage;
 
-	public static bool GlobalDebugDamage = true; // temporary, remove at the end of Phase 1
-
 	public UnityEvent OnDeath;
 
 	public float MaxHP { get; private set; }
@@ -32,7 +30,7 @@ public class Health : MonoBehaviour
 	{
 		if (!IsDead)
 		{
-			if (debugDamage || GlobalDebugDamage)
+			if (debugDamage || CombatDebug.Enabled)
 				Debug.Log($"[Damage] {info.attackerReference?.name} -> {name}: {info.amount} ({info.attackType}, heavy={info.IsHeavy})");
 			CurrentHP -= info.amount;
 			this.OnDamaged?.Invoke(info);
