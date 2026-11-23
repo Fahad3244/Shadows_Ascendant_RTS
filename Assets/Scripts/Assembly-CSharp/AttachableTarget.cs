@@ -438,6 +438,17 @@ public class AttachableTarget : MonoBehaviour
 	public void ConfirmAttach(UnitAgent agent)
 	{
 		bool isFront = _frontUnits.Contains(agent);
+		HumanPlayerTarget human = GetComponent<HumanPlayerTarget>();
+		if (human != null && (isFront || _incomingUnits.Contains(agent)))
+		{
+			if (human.TryBlock(agent))
+			{
+				CancelReservation(agent);
+				LogAttach($"HUMAN BLOCKED {agent.name}");
+				agent.ReturnToPlayer();
+				return;
+			}
+		}
 		if (_enemy != null && (isFront || _incomingUnits.Contains(agent)))
 		{
 			int engaged = _attachedUnits.Count + _incomingUnits.Count + _frontUnits.Count;
