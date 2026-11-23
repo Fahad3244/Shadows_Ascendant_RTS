@@ -37,6 +37,20 @@ public class EnemyBase : MonoBehaviour
 	[Tooltip("Dot product below this = attacker is behind.")]
 	[SerializeField] private float backDotThreshold = -0.3f;
 
+	[Header("Frontal Defense")]
+	[SerializeField] private bool canCounter = true;
+	[Tooltip("Troops engaged at once needed to overwhelm the counter.")]
+	[SerializeField] private int overwhelmCount = 3;
+	[Tooltip("After a counter, further frontal attempts get through for this long.")]
+	[SerializeField] private float counterCooldown = 1.5f;
+	[SerializeField] private float counterDamage = 5f;
+	[SerializeField] private float counterKnockback = 2.5f;
+	[SerializeField] private float counterStun = 1f;
+
+	private float _nextCounterTime;
+	public string LastDefense { get; private set; } = "";
+	public float LastDefenseTime { get; private set; } = -999f;
+
 	[Header("Shake-off")]
 	[SerializeField] private bool canShakeOff = true;
 	[SerializeField] private float shakeOffDelay = 5f;
@@ -255,6 +269,36 @@ public class EnemyBase : MonoBehaviour
 		if (dot > frontDotThreshold) return AttackDirection.Front;
 		if (dot < backDotThreshold) return AttackDirection.Back;
 		return AttackDirection.Side;
+	}
+
+	// Returns true if the attach attempt was countered (troop must not attach)
+	public bool TryCounter(UnitAgent troop, int engagedCount)
+	{
+		AttackDirection dir = GetAttackDirection(troop.transform.position);
+		string result;
+		bool countered = false;
+
+		if (!canCounter) result = "NO COUNTER (disabled)";
+		else if (IsStunned) result = "BYPASS: STUNNED";
+		else if (!IsAware) result = "BYPASS: UNAWARE";
+		else if (dir != AttackDirection.Front) result = "BYPASS: " + dir.ToString().ToUpper();
+		else if (engagedCount >= overwhelmCount) result = "OVERWHELMED (" + engagedCount + " troops)";
+		else if (Time.time < _nextCounterTime) result = "BYPASS: RECOVERING";
+		else
+		{
+			countered = true;
+			result = "COUNTERED";
+			_nextCounterTime = Time.time + counterCooldown;
+			Vector3 d = troop.transform.position - transform.position;
+			d.y = 0f;
+			if (d.sqrMagnitude < 0.01f) d = transform.forward;
+			troop.GetThrown(d.normalized, counterDamage, counterKnockback, counterStun, transform);
+		}
+
+		LastDefense = result;
+		LastDefenseTime = Time.time;
+		Debug.Log($"[Defense] {name} vs {troop.name}: {result} (dir={dir}, engaged={engagedCount})");
+		return countered;
 	}
 
 	public void Stun(float seconds)

@@ -62,8 +62,10 @@ public class EnemyDebugLabel : MonoBehaviour
 			status += "Nearest: " + nearest.name + " (" + best.ToString("F0") + "m)\n";
 			status += (nearest.IsAware ? "AWARE" : "UNAWARE") + (nearest.IsStunned ? " | STUNNED" : "") + "\n";
 			status += "You are at its: " + nd.ToString().ToUpper();
+			if (nearest.LastDefense != "" && Time.time - nearest.LastDefenseTime < 4f)
+				status += "\nLast attach: " + nearest.LastDefense;
 		}
-		GUI.Box(new Rect(10, 10, 360, 110), status, _box);
+		GUI.Box(new Rect(10, 10, 360, 130), status, _box);
 
 		Camera cam = Camera.main;
 		if (_player == null || cam == null) return;
@@ -76,7 +78,8 @@ public class EnemyDebugLabel : MonoBehaviour
 			AttackDirection dir = e.GetAttackDirection(_player.position);
 			Color c = dir == AttackDirection.Front ? Color.red : (dir == AttackDirection.Back ? Color.green : Color.yellow);
 			string text = (e.IsAware ? "AWARE" : "UNAWARE") + (e.IsStunned ? " | STUNNED" : "") + "\nYou: " + dir.ToString().ToUpper();
-			Rect r = new Rect(sp.x - 100f, Screen.height - sp.y - 20f, 200f, 44f);
+			if (e.LastDefense != "" && Time.time - e.LastDefenseTime < 4f) text += "\n" + e.LastDefense;
+			Rect r = new Rect(sp.x - 100f, Screen.height - sp.y - 20f, 200f, 64f);
 			_style.normal.textColor = Color.black;
 			GUI.Label(new Rect(r.x + 1, r.y + 1, r.width, r.height), text, _style);
 			_style.normal.textColor = c;

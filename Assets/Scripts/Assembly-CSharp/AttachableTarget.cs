@@ -437,7 +437,18 @@ public class AttachableTarget : MonoBehaviour
 
 	public void ConfirmAttach(UnitAgent agent)
 	{
-		if (_frontUnits.Contains(agent))
+		bool isFront = _frontUnits.Contains(agent);
+		if (_enemy != null && (isFront || _incomingUnits.Contains(agent)))
+		{
+			int engaged = _attachedUnits.Count + _incomingUnits.Count + _frontUnits.Count;
+			if (_enemy.TryCounter(agent, engaged))
+			{
+				CancelReservation(agent);
+				LogAttach($"COUNTERED {agent.name}");
+				return;
+			}
+		}
+		if (isFront)
 		{
 			LogAttach($"ATTACHED front {agent.name}{DescribeEnemy(agent)}");
 			agent.OnAttachedToTarget(this);
