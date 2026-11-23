@@ -114,7 +114,13 @@ public class EnemyBase : MonoBehaviour
 	{
 		if (currentState == EnemyState.Dead) return;
 		if (IsStunned) return;
-		if (_wasStunned) { _wasStunned = false; _navAgent.isStopped = false; }
+		if (_wasStunned)
+		{
+			_wasStunned = false;
+			_navAgent.isStopped = false;
+			_attachedTimer = 0f;
+			Debug.Log($"[Stun] {name} recovered (attached={AttachedCount})");
+		}
 		HandleStateMachine();
 		HandleShakeOff();
 	}
@@ -253,6 +259,20 @@ public class EnemyBase : MonoBehaviour
 	}
 
 	public bool IsStunned => Time.time < _stunnedUntil;
+	public float StunRemaining => Mathf.Max(0f, _stunnedUntil - Time.time);
+	public int AttachedCount => _myAttachableSelf != null ? _myAttachableSelf.GetAllAttachedUnits().Count : 0;
+	public bool CanStartOverthrow => currentState != EnemyState.Dead && !IsStunned;
+
+	public string OverthrowTimerState
+	{
+		get
+		{
+			if (AttachedCount == 0) return "idle (no attackers)";
+			if (IsStunned) return "PAUSED (stunned)";
+			return "running " + _attachedTimer.ToString("F1") + "/" + shakeOffDelay.ToString("F0");
+		}
+	}
+
 	public bool IsUnaware => currentState == EnemyState.Idle;
 
 	public EnemyState State => currentState;
@@ -304,11 +324,13 @@ public class EnemyBase : MonoBehaviour
 	public void Stun(float seconds)
 	{
 		if (currentState == EnemyState.Dead) return;
-		_stunnedUntil = Time.time + seconds;
+		bool already = IsStunned;
+		_stunnedUntil = Mathf.Max(_stunnedUntil, Time.time + seconds);
 		_wasStunned = true;
 		_telegraphTimer = -1f;
 		EndGlow();
 		if (_navAgent.isOnNavMesh) _navAgent.isStopped = true;
+		if (!already) Debug.Log($"[Stun] {name} stunned for {seconds}s (attached={AttachedCount})");
 	}
 
 	public float GetDamageMultiplierFrom(Vector3 attackerPos)
@@ -321,6 +343,7 @@ public class EnemyBase : MonoBehaviour
 
 	private void HandleShakeOff()
 	{
+		if (IsStunned) return;
 		if (!canShakeOff) return;
 		if (_telegraphTimer >= 0f)
 		{

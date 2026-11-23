@@ -64,8 +64,10 @@ public class EnemyDebugLabel : MonoBehaviour
 			status += "You are at its: " + nd.ToString().ToUpper();
 			if (nearest.LastDefense != "" && Time.time - nearest.LastDefenseTime < 4f)
 				status += "\nLast attach: " + nearest.LastDefense;
+			if (nearest.IsStunned) status += "\nSTUN left: " + nearest.StunRemaining.ToString("F1") + "s";
+			status += "\nAttached: " + nearest.AttachedCount + "  Overthrow: " + nearest.OverthrowTimerState;
 		}
-		GUI.Box(new Rect(10, 10, 360, 130), status, _box);
+		GUI.Box(new Rect(10, 10, 380, 175), status, _box);
 
 		Camera cam = Camera.main;
 		if (_player == null || cam == null) return;
