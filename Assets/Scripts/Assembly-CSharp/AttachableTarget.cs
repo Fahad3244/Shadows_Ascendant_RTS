@@ -231,6 +231,31 @@ public class AttachableTarget : MonoBehaviour
 		return true;
 	}
 
+	// Move an agent's reservation to a different free point. Returns false if none is available.
+	public bool TryReassignPoint(UnitAgent agent)
+	{
+		if (_unlimitedSlots || maxAttachSlots <= 0) return false;
+		if (!_incomingUnits.Contains(agent)) return false;
+		if (!_slotIndex.TryGetValue(agent, out int old)) return false;
+
+		Vector3 from = agent.transform.position;
+		int best = -1;
+		float bestD = float.MaxValue;
+		for (int i = 0; i < maxAttachSlots; i++)
+		{
+			if (i == old || _slotIndex.ContainsValue(i)) continue;
+			Vector3 p = SlotWorldPosition(i);
+			if (!NavMesh.SamplePosition(p, out NavMeshHit hit, 1.5f, NavMesh.AllAreas)) continue;
+			if (!agent.CanReach(hit.position)) continue;
+			float d = (p - from).sqrMagnitude;
+			if (d < bestD) { bestD = d; best = i; }
+		}
+		if (best < 0) return false;
+		_slotIndex[agent] = best;
+		LogAttach($"REASSIGNED {agent.name} point {old}->{best}");
+		return true;
+	}
+
 	private string PointSummary()
 	{
 		System.Text.StringBuilder sb = new System.Text.StringBuilder("[");

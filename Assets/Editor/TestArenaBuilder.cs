@@ -18,6 +18,8 @@ public static class TestArenaBuilder
     private static EnemyData _dummy, _weak, _brute, _killer, _tank, _hunter;
     private static readonly List<Transform> Spawns = new List<Transform>();
     private static readonly Dictionary<string, Material> Mats = new Dictionary<string, Material>();
+    private static readonly Dictionary<int, AttachmentSettings> AttachBySlots = new Dictionary<int, AttachmentSettings>();
+    private static AttachmentSettings _attachPlayer;
 
     private static readonly string[] OldNames =
     {
@@ -65,6 +67,28 @@ public static class TestArenaBuilder
         _tank.passive = true;
         EditorUtility.SetDirty(_dummy);
         EditorUtility.SetDirty(_tank);
+
+        EnsureFolder("Assets/TestArena/Settings");
+        AttachBySlots.Clear();
+        MakeAttach("Attach_Critter", 1);
+        AttachBySlots[1] = MakeAttach("Attach_Melee", 1);
+        AttachBySlots[2] = MakeAttach("Attach_Ranged", 2);
+        MakeAttach("Attach_Medic", 2);
+        MakeAttach("Attach_Builder", 3);
+        AttachBySlots[3] = MakeAttach("Attach_EnemyDemo", 3);
+        AttachBySlots[4] = MakeAttach("Attach_EnemyStandard", 4);
+        AttachBySlots[5] = MakeAttach("Attach_Miniboss", 5);
+        AttachBySlots[6] = MakeAttach("Attach_Boss", 6);
+        _attachPlayer = MakeAttach("Attach_Player", 4);
+        AssetDatabase.SaveAssets();
+
+        if (player != null)
+        {
+            PlayerAttachment pa = player.GetComponent<PlayerAttachment>();
+            if (pa == null) pa = player.AddComponent<PlayerAttachment>();
+            Set<PlayerAttachment>(player, "settings", _attachPlayer);
+            Set<PlayerHealthHandler>(player, "maxHealth", 250);
+        }
 
         _root = new GameObject("TestArena").transform;
 
@@ -189,12 +213,31 @@ public static class TestArenaBuilder
         AddEnemy(st, "S3A_Enemy", -30f, -2f, _dummy, 2);
 
         Lane(st, 0f, "S3-B  SLOT NUMBER + HEALTH BAR",
-            "Look at the enemy: no symbol. Press Z: number + health bar appear. Send troops one by one.\nEXPECT: number shows free slots (5 to 0, red at 0). Symbol hides again a few seconds after you clear the target and the troops leave.");
-        AddEnemy(st, "S3B_Enemy", 0f, -2f, _dummy, 5);
+            "Look at the enemy: no symbol. Press Z: number + health bar appear. Send troops one by one.\nEXPECT: number shows free slots (4 to 0, red at 0). Symbol hides again a few seconds after you clear the target and the troops leave.");
+        AddEnemy(st, "S3B_Enemy", 0f, -2f, _dummy, 4);
 
         Lane(st, 30f, "S3-C  REAL FIGHT",
             "HOLD left-click to send everyone.\nEXPECT: the brute hits hard. Troops die within a few hits (a 'Lost!' message shows) while the rest keep attacking it.");
         AddEnemy(st, "S3C_Enemy", 30f, -2f, _brute, 3);
+
+        Lane(st, 60f, "S3-D  HUMAN PLAYER RULE",
+            "The cyan label above the target shows its state. U toggles AWARE / UNAWARE.\nPress Z, press 3, TAP once from the pad (you face its front).\nEXPECT: FRONT BLOCKED, the troop returns, target loses 5 HP, no knockback, no stun. Press U (UNAWARE) and tap: attaches. Walk to its side or back, set AWARE, tap: attaches.");
+        GameObject human = Clone("Enemy", st, 60f, -2f, "S3D_HumanPlayer");
+        if (human != null)
+        {
+            EnemyBase eb = human.GetComponent<EnemyBase>();
+            if (eb != null) UnityEngine.Object.DestroyImmediate(eb);
+            Set<AttachableTarget>(human, "maxAttachSlots", 4);
+            Set<AttachableTarget>(human, "settings", AttachFor(4));
+            Set<AttachableTarget>(human, "requiredUnitsToMove", 0);
+            human.AddComponent<HumanPlayerTarget>();
+            human.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+        }
+
+        Lane(st, -60f, "S3-E  BLOCKED POINT",
+            "Press Z, press 3, HOLD left-click.\nEXPECT: a wall covers the near side. Troops take the free points around it (Console may show REASSIGNED). No troop stays stuck, and points= never shows a stuck R.");
+        AddEnemy(st, "S3E_Enemy", -60f, -2f, _dummy, 4);
+        Wall(st, "S3E_Blocker", -60f, -3.5f, 3.5f, 1f);
     }
 
     private static void BuildS4()
@@ -500,6 +543,7 @@ public static class TestArenaBuilder
         if (e == null) return null;
         Set<EnemyBase>(e, "enemyData", data);
         Set<AttachableTarget>(e, "maxAttachSlots", slots);
+        Set<AttachableTarget>(e, "settings", AttachFor(slots));
         Set<AttachableTarget>(e, "requiredUnitsToMove", 0);
         return e;
     }
@@ -802,6 +846,26 @@ public static class TestArenaBuilder
         else if (value is float f) p.floatValue = f;
         else if (value is string s) p.stringValue = s;
         so.ApplyModifiedProperties();
+    }
+
+    private static AttachmentSettings MakeAttach(string name, int points)
+    {
+        string path = "Assets/TestArena/Settings/" + name + ".asset";
+        AttachmentSettings a = AssetDatabase.LoadAssetAtPath<AttachmentSettings>(path);
+        if (a == null)
+        {
+            a = ScriptableObject.CreateInstance<AttachmentSettings>();
+            AssetDatabase.CreateAsset(a, path);
+        }
+        a.maxAttachmentPoints = points;
+        EditorUtility.SetDirty(a);
+        return a;
+    }
+
+    private static AttachmentSettings AttachFor(int slots)
+    {
+        AttachmentSettings a;
+        return AttachBySlots.TryGetValue(slots, out a) ? a : null;
     }
 
     private static EnemyData MakeEnemyData(string name, float hp, float dmg, float aggro, float patrol, float interval, float speed)

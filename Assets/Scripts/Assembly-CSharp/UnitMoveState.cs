@@ -23,6 +23,8 @@ public class UnitMoveState : UnitStateBase
 
 	private float _blockedTimer = -1f;
 
+	private int _reassignCount;
+
 	private const float COMMITMENT_DURATION = 2f;
 
 	public UnitMoveState(UnitAgent agent)
@@ -57,6 +59,7 @@ public class UnitMoveState : UnitStateBase
 
 	public void SetTarget(AttachableTarget target, bool auto = false)
 	{
+		_reassignCount = 0;
 		_targetEntity = target;
 		_hasRequestedAttach = false;
 		if (target != null)
@@ -151,6 +154,14 @@ public class UnitMoveState : UnitStateBase
 				_blockedTimer = _blockedTimer < 0f ? _agent.arrivePauseTime : _blockedTimer - Time.deltaTime;
 				if (_blockedTimer <= 0f)
 				{
+					if (_targetEntity != null && _reassignCount < 2 && _targetEntity.TryReassignPoint(_agent))
+					{
+						_reassignCount++;
+						_blockedTimer = -1f;
+						if (TryGetSlotDestination(out Vector3 np) && _agent.NavAgent.isOnNavMesh)
+							_agent.NavAgent.SetDestination(np);
+						return;
+					}
 					Debug.Log($"[Blocked] {_agent.name} cannot reach destination, returning");
 					_agent.ReturnToPlayer();
 				}

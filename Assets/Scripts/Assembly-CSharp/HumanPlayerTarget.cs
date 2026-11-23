@@ -16,8 +16,8 @@ public class HumanPlayerTarget : MonoBehaviour
 
 	private void Awake()
 	{
-		if (TryGetComponent(out Health health))
-			health.Initialize(maxHealth);
+		Health h = GetComponent<Health>();
+		if (h != null && h.MaxHP <= 0f) h.Initialize(500f);
 	}
 
 	public bool IsDirectFront(Vector3 attackerPos)
