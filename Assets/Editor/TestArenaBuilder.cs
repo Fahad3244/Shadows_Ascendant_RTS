@@ -154,8 +154,10 @@ public static class TestArenaBuilder
     private static void BuildHub()
     {
         Transform hub = Station("Hub", 0f, 0f, "HUB",
-            "Press F2-F9 to visit the test stations: F2 Targeting, F3 Sweep, F4 Hostiles, F5 Carry + Waypoints, F6 Breakables, F7 Pickups, F8 Failures, F9 Combat. " +
-            "F1 returns here. H hides the controls. F12 resets everything. In a station, stand on a green pad to read what to test.");
+            "Walk to a station with its F key. Stand on a green pad to read what to test.\n" +
+            "F2 Targeting   F3 Sweep   F4 Hostiles   F5 Carry + Waypoints\n" +
+            "F6 Breakables   F7 Pickups   F8 Failures   F9 Combat\n" +
+            "F1 back to Hub   F12 reset the station   H hide controls   G combat debug panel");
         Disc(hub, "HubDisc", 0f, -27f, 3f, new Color(0.3f, 0.6f, 1f));
     }
 
@@ -698,26 +700,34 @@ public static class TestArenaBuilder
             if (old != null) UnityEngine.Object.DestroyImmediate(old.gameObject);
         }
 
-        helpPanel = UiPanel(canvas, "ArenaHelpPanel", new Vector2(1f, 1f), new Vector2(-10f, -10f), new Vector2(560f, 400f));
-        TextMeshProUGUI help = UiText(helpPanel.transform, 15f);
+        helpPanel = UiPanel(canvas, "ArenaHelpPanel", new Vector2(1f, 1f), new Vector2(-10f, -10f), new Vector2(560f, 500f));
+        TextMeshProUGUI help = UiText(helpPanel.transform, 14f);
         help.text =
-            "<b>CONTROLS</b>\n" +
-            "WASD move  |  hold RIGHT mouse + move = rotate camera\n" +
-            "`  All    1 Builder    2 Ranged    3 Melee    4 Medic\n" +
-            "LEFT click: tap = send 1 troop, hold = send the group\n" +
-            "RIGHT click: tap = recall 1, hold = recall the group\n" +
-            "LEFT + RIGHT together = SWEEP (steer troops directly)\n" +
-            "Z = target nearest / next (a targeted carried object freezes)    X = clear target (object resumes)\n" +
-            "Q = guard flag\n" +
-            "Ctrl: HOLD = plan a route (hold LEFT + RIGHT to draw it), RELEASE = save it, TAP = run it\n" +
-            "Waypoint ring = capture zone (blue = yours, red = enemy)\n" +
-            "Counters: movable = troops still needed (negative = extra), enemy = free attach slots\n" +
-            "K / L = flip a waypoint (S4)   E = wake enemy (S7, S8)   M = killer (S6)   B = open walls (S7)   N = stun enemies (test only)\n" +
-            "F1 Hub, F2-F9 stations 1-8   H hide help   F12 reset\n" +
-            "Esc frees the mouse cursor";
+            "<size=125%><b><color=#7fd1ff>CONTROLS</color></b></size>\n" +
+            "<b><color=#ffd966>MOVE</color></b>\n" +
+            "<color=#9ad>WASD</color> move     <color=#9ad>Hold RIGHT mouse + move</color> rotate camera\n" +
+            "<color=#9ad>Esc</color> free the mouse cursor\n\n" +
+            "<b><color=#ffd966>TROOP GROUP</color></b>\n" +
+            "<color=#9ad>`</color> All    <color=#9ad>1</color> Builder    <color=#9ad>2</color> Ranged    <color=#9ad>3</color> Melee    <color=#9ad>4</color> Medic\n\n" +
+            "<b><color=#ffd966>COMMANDS</color></b>\n" +
+            "<color=#9ad>LEFT click</color> tap = send 1, hold = send group\n" +
+            "<color=#9ad>RIGHT click</color> tap = recall 1, hold = recall group\n" +
+            "<color=#9ad>LEFT + RIGHT</color> sweep (steer troops directly)\n" +
+            "<color=#9ad>Z</color> target nearest / next     <color=#9ad>X</color> clear target\n" +
+            "<color=#9ad>Q</color> guard flag\n" +
+            "<color=#9ad>Ctrl</color> hold = plan route, release = save, tap = run\n\n" +
+            "<b><color=#ffd966>READING THE WORLD</color></b>\n" +
+            "Ring number on an enemy = free attach points\n" +
+            "Ring number on a movable = troops still needed\n" +
+            "Waypoint ring: <color=#6fa8ff>blue</color> yours, <color=#ff6666>red</color> enemy\n\n" +
+            "<b><color=#ffd966>TEST KEYS</color></b>\n" +
+            "<color=#9ad>G</color> combat debug panel     <color=#9ad>Y</color> 6 enemies attack you\n" +
+            "<color=#9ad>N</color> stun enemies     <color=#9ad>U</color> human target aware / unaware\n" +
+            "<color=#9ad>E</color> wake enemy     <color=#9ad>M</color> killer     <color=#9ad>B</color> open walls     <color=#9ad>K / L</color> flip waypoint\n\n" +
+            "<color=#9ad>F1</color> Hub   <color=#9ad>F2-F9</color> stations   <color=#9ad>H</color> hide this   <color=#9ad>F12</color> reset";
 
-        hintPanel = UiPanel(canvas, "ArenaHintPanel", new Vector2(0.5f, 1f), new Vector2(0f, -10f), new Vector2(700f, 320f));
-        hintLabel = UiText(hintPanel.transform, 18f);
+        hintPanel = UiPanel(canvas, "ArenaHintPanel", new Vector2(0.5f, 1f), new Vector2(0f, -10f), new Vector2(760f, 260f));
+        hintLabel = UiText(hintPanel.transform, 17f);
         hintLabel.text = "";
         hintPanel.SetActive(false);
     }
