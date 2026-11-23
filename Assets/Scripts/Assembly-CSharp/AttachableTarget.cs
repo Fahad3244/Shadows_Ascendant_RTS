@@ -94,6 +94,8 @@ public class AttachableTarget : MonoBehaviour
 
 	private Health _health;
 
+	private EnemyBase _enemy;
+
 	private PlayerTargetingManager _ptm;
 
 	private bool _hasTakenDamage;
@@ -202,6 +204,12 @@ public class AttachableTarget : MonoBehaviour
 	{
 		if (!GlobalDebugAttach || _unlimitedSlots) return;
 		Debug.Log($"[Attach] {name}: {msg} | cap={maxAttachSlots} occupied={_attachedUnits.Count} reserved={_incomingUnits.Count} front={_frontUnits.Count} points={PointSummary()}");
+	}
+
+	private string DescribeEnemy(UnitAgent agent)
+	{
+		if (_enemy == null) return "";
+		return $" aware={_enemy.IsAware} stunned={_enemy.IsStunned} dir={_enemy.GetAttackDirection(agent.transform.position)}";
 	}
 
 	public AttachmentPointState GetPointState(int i)
@@ -319,6 +327,7 @@ public class AttachableTarget : MonoBehaviour
 		}
 		_baseTarget = GetComponent<TargetableEntity>();
 		_health = GetComponent<Health>();
+		_enemy = GetComponent<EnemyBase>();
 		_ptm = UnityEngine.Object.FindObjectOfType<PlayerTargetingManager>();
 		if (uiPrefab != null)
 		{
@@ -430,7 +439,7 @@ public class AttachableTarget : MonoBehaviour
 	{
 		if (_frontUnits.Contains(agent))
 		{
-			LogAttach($"ATTACHED front {agent.name}");
+			LogAttach($"ATTACHED front {agent.name}{DescribeEnemy(agent)}");
 			agent.OnAttachedToTarget(this);
 			return;
 		}
@@ -439,7 +448,7 @@ public class AttachableTarget : MonoBehaviour
 			_incomingUnits.Remove(agent);
 			_attachedUnits.Add(agent);
 			AssignSlot(agent);
-			LogAttach($"ATTACHED ring {agent.name}");
+			LogAttach($"ATTACHED ring {agent.name}{DescribeEnemy(agent)}");
 			agent.OnAttachedToTarget(this);
 			UpdateUI();
 			CheckMoveState();

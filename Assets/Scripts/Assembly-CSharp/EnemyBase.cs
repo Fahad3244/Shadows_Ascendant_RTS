@@ -31,6 +31,12 @@ public class EnemyBase : MonoBehaviour
 	[SerializeField, Range(0f, 1f)] private float firstStrikeCharge = 0.7f;
 	[SerializeField] private float backstabMultiplier = 3f;
 
+	[Header("Awareness / Direction")]
+	[Tooltip("Dot product above this = attacker is in front.")]
+	[SerializeField] private float frontDotThreshold = 0.3f;
+	[Tooltip("Dot product below this = attacker is behind.")]
+	[SerializeField] private float backDotThreshold = -0.3f;
+
 	[Header("Shake-off")]
 	[SerializeField] private bool canShakeOff = true;
 	[SerializeField] private float shakeOffDelay = 5f;
@@ -235,6 +241,22 @@ public class EnemyBase : MonoBehaviour
 	public bool IsStunned => Time.time < _stunnedUntil;
 	public bool IsUnaware => currentState == EnemyState.Idle;
 
+	public EnemyState State => currentState;
+	public bool IsAware => currentState == EnemyState.Chasing || currentState == EnemyState.Attacking;
+
+	public AttackDirection GetAttackDirection(Vector3 attackerPos)
+	{
+		Vector3 to = attackerPos - transform.position;
+		to.y = 0f;
+		if (to.sqrMagnitude < 0.01f) return AttackDirection.Front;
+		Vector3 fwd = transform.forward;
+		fwd.y = 0f;
+		float dot = Vector3.Dot(fwd.normalized, to.normalized);
+		if (dot > frontDotThreshold) return AttackDirection.Front;
+		if (dot < backDotThreshold) return AttackDirection.Back;
+		return AttackDirection.Side;
+	}
+
 	public void Stun(float seconds)
 	{
 		if (currentState == EnemyState.Dead) return;
@@ -248,13 +270,8 @@ public class EnemyBase : MonoBehaviour
 	public float GetDamageMultiplierFrom(Vector3 attackerPos)
 	{
 		float m = 1f;
-		if (IsUnaware)
-		{
-			Vector3 to = attackerPos - transform.position;
-			to.y = 0f;
-			if (to.sqrMagnitude > 0.01f && Vector3.Dot(transform.forward, to.normalized) < -0.3f)
-				m *= backstabMultiplier;
-		}
+		if (IsUnaware && GetAttackDirection(attackerPos) == AttackDirection.Back)
+			m *= backstabMultiplier;
 		return m;
 	}
 
@@ -435,5 +452,18 @@ public class EnemyBase : MonoBehaviour
 			Gizmos.color = Color.red;
 			Gizmos.DrawWireSphere(base.transform.position, enemyData.aggroRange);
 		}
+		Vector3 f = transform.forward;
+		f.y = 0f;
+		f.Normalize();
+		Vector3 o = transform.position + Vector3.up * 0.3f;
+		float frontAng = Mathf.Acos(Mathf.Clamp(frontDotThreshold, -1f, 1f)) * Mathf.Rad2Deg;
+		float backAng = Mathf.Acos(Mathf.Clamp(backDotThreshold, -1f, 1f)) * Mathf.Rad2Deg;
+		Gizmos.color = Color.green;
+		Gizmos.DrawRay(o, f * 5f);
+		Gizmos.DrawRay(o, Quaternion.Euler(0f, frontAng, 0f) * f * 4f);
+		Gizmos.DrawRay(o, Quaternion.Euler(0f, -frontAng, 0f) * f * 4f);
+		Gizmos.color = Color.red;
+		Gizmos.DrawRay(o, Quaternion.Euler(0f, backAng, 0f) * f * 4f);
+		Gizmos.DrawRay(o, Quaternion.Euler(0f, -backAng, 0f) * f * 4f);
 	}
 }
