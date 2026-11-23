@@ -51,6 +51,11 @@ public class EnemyBase : MonoBehaviour
 	public string LastDefense { get; private set; } = "";
 	public float LastDefenseTime { get; private set; } = -999f;
 
+	[Header("Player Attachment")]
+	[Tooltip("Damage multiplier when the player has no free attach point.")]
+	[SerializeField] private float unattachedDamageMultiplier = 0.5f;
+	private int _pointIndex = -1;
+
 	[Header("Shake-off")]
 	[SerializeField] private bool canShakeOff = true;
 	[SerializeField] private float shakeOffDelay = 5f;
@@ -147,6 +152,20 @@ public class EnemyBase : MonoBehaviour
 		HandleTargetScan();
 	}
 
+	private PlayerAttachment GetPlayerAttach(Transform t)
+	{
+		return t != null ? t.GetComponentInParent<PlayerAttachment>() : null;
+	}
+
+	private void ReleasePoint()
+	{
+		if (_pointIndex >= 0)
+		{
+			if (PlayerAttachment.Instance != null) PlayerAttachment.Instance.Release(this);
+			_pointIndex = -1;
+		}
+	}
+
 	private void HandleTargetScan()
 	{
 		if (enemyData.passive) return;
@@ -164,6 +183,7 @@ public class EnemyBase : MonoBehaviour
 			_lastRetargetTime = Time.time;
 			Debug.Log("[Enemy] " + name + " target -> " + best.name);
 			_currentTarget = best;
+			ReleasePoint();
 			if (currentState == EnemyState.Attacking) TransitionToState(EnemyState.Chasing);
 		}
 		if (currentState == EnemyState.Idle) TransitionToState(EnemyState.Chasing);
@@ -206,6 +226,27 @@ public class EnemyBase : MonoBehaviour
 			TransitionToState(EnemyState.Idle);
 			return;
 		}
+
+		PlayerAttachment pa = GetPlayerAttach(_currentTarget);
+		if (pa != null)
+		{
+			if (_pointIndex < 0) pa.TryReserve(this, out _pointIndex);
+			if (_pointIndex >= 0 && pa.GetPointPosition(_pointIndex, out Vector3 p))
+			{
+				Vector3 flat = p - transform.position;
+				flat.y = 0f;
+				if (flat.magnitude <= 0.7f)
+				{
+					pa.Confirm(this);
+					TransitionToState(EnemyState.Attacking);
+					return;
+				}
+				_navAgent.isStopped = false;
+				_navAgent.SetDestination(p);
+				return;
+			}
+		}
+
 		if (Vector3.Distance(base.transform.position, _currentTarget.position) <= enemyData.attackRange)
 		{
 			TransitionToState(EnemyState.Attacking);
@@ -225,6 +266,14 @@ public class EnemyBase : MonoBehaviour
 			TransitionToState(EnemyState.Idle);
 			return;
 		}
+
+		PlayerAttachment pa = GetPlayerAttach(_currentTarget);
+		if (pa != null && _pointIndex < 0 && pa.TryReserve(this, out _pointIndex))
+		{
+			TransitionToState(EnemyState.Chasing);
+			return;
+		}
+
 		if (Vector3.Distance(base.transform.position, _currentTarget.position) > enemyData.attackRange + 0.5f)
 		{
 			TransitionToState(EnemyState.Chasing);
@@ -255,6 +304,7 @@ public class EnemyBase : MonoBehaviour
 		if (newState == EnemyState.Idle)
 		{
 			_navAgent.isStopped = false;
+			ReleasePoint();
 		}
 	}
 
@@ -276,6 +326,7 @@ public class EnemyBase : MonoBehaviour
 	public bool IsUnaware => currentState == EnemyState.Idle;
 
 	public EnemyState State => currentState;
+	public EnemyData Data => enemyData;
 	public bool IsAware => currentState == EnemyState.Chasing || currentState == EnemyState.Attacking;
 
 	public AttackDirection GetAttackDirection(Vector3 attackerPos)
@@ -470,12 +521,15 @@ public class EnemyBase : MonoBehaviour
 		{
 			component3.ReceiveAggro(_myAttachableSelf);
 		}
+		PlayerAttachment pa = GetPlayerAttach(_currentTarget);
+		bool onPlayer = pa != null;
+		bool attached = onPlayer && _pointIndex >= 0;
 		DamageInfo info = new DamageInfo
 		{
-			amount = enemyData.attackDamage,
+			amount = enemyData.attackDamage * ((onPlayer && !attached) ? unattachedDamageMultiplier : 1f),
 			attackerReference = base.transform,
 			type = DamageType.Normal,
-			attackType = AttackType.Light
+			attackType = (onPlayer && !attached) ? AttackType.Light : (onPlayer ? AttackType.Attachment : AttackType.Light)
 		};
 		component.TakeDamage(info);
 	}
@@ -496,6 +550,7 @@ public class EnemyBase : MonoBehaviour
 
 	private void Die()
 	{
+		ReleasePoint();
 		currentState = EnemyState.Dead;
 		_navAgent.isStopped = true;
 		_myAttachableSelf.EjectAllUnits();
@@ -508,6 +563,7 @@ public class EnemyBase : MonoBehaviour
 
 	private void OnDestroy()
 	{
+		ReleasePoint();
 		_health.OnDeath.RemoveListener(Die);
 		_health.OnDamaged -= HandleDamaged;
 	}

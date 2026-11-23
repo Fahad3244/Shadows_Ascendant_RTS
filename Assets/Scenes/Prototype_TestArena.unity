@@ -68,6 +68,7 @@ GameObject:
   - component: {fileID: 840}
   - component: {fileID: 839}
   - component: {fileID: 841}
+  - component: {fileID: 900000001}
   m_Layer: 10
   m_Name: Player
   m_TagString: Untagged
@@ -84207,6 +84208,22 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 83ae68f755639a7499362d24fdc9bd7a, type: 3}
+--- !u!114 &900000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a97759f363fe4c0cbcde747d619af609, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerAttachment
+  settings: {fileID: 11400000, guid: 400faa9aaecb43c68768c63b46932aa7, type: 2}
+  maxPoints: 4
+  radius: 1.6
+  testInvulnerable: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
