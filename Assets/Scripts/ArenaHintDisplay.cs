@@ -76,6 +76,9 @@ public class ArenaHintDisplay : MonoBehaviour
 
         string body = best.body
             .Replace("EXPECT:", "<b><color=#66ff88>EXPECT:</color></b>")
+            .Replace("GOAL:", "<b><color=#ffd966>GOAL:</color></b>")
+            .Replace("HOW:", "<b><color=#7fd1ff>HOW:</color></b>")
+            .Replace("RESULT:", "<b><color=#66ff88>RESULT:</color></b>")
             .Replace("\n", "\n\n");
         string text = "<size=130%><b><color=#7fd1ff>" + best.title + "</color></b></size>\n\n" + body;
         if (text == _lastText) return;

@@ -56,6 +56,11 @@ public class EnemyBase : MonoBehaviour
 	[SerializeField] private float unattachedDamageMultiplier = 0.5f;
 	private int _pointIndex = -1;
 
+	[Header("Stealth")]
+	[Tooltip("0 = off. After being hit while unaware, the enemy turns on its attacker after this many seconds.")]
+	[SerializeField] private float alertAfterHit = 0f;
+	private float _alertAt = -1f;
+
 	[Header("Test")]
 	[Tooltip("Test lanes only: enemy never targets the player, only troops.")]
 	[SerializeField] private bool ignorePlayer;
@@ -153,6 +158,16 @@ public class EnemyBase : MonoBehaviour
 
 	private void HandleIdleState()
 	{
+		if (_alertAt >= 0f && Time.time >= _alertAt)
+		{
+			_alertAt = -1f;
+			if (_lastAttacker != null && IsTargetStillValid(_lastAttacker))
+			{
+				_currentTarget = _lastAttacker;
+				TransitionToState(EnemyState.Chasing);
+				return;
+			}
+		}
 		Patrol();
 		HandleTargetScan();
 	}
@@ -198,6 +213,8 @@ public class EnemyBase : MonoBehaviour
 	{
 		if (info.attackerReference == null) return;
 		_lastAttacker = info.attackerReference;
+		if (alertAfterHit > 0f && currentState == EnemyState.Idle && _alertAt < 0f)
+			_alertAt = Time.time + alertAfterHit;
 	}
 
 	private Transform ChooseTarget()
@@ -457,7 +474,7 @@ public class EnemyBase : MonoBehaviour
 
 	private Transform FindNearestTarget()
 	{
-		if (_myAttachableSelf.AttachedUnitCount > 0)
+		if (alertAfterHit <= 0f && _myAttachableSelf.AttachedUnitCount > 0)
 		{
 			UnitAgent priorityAttachedUnit = _myAttachableSelf.GetPriorityAttachedUnit();
 			if (priorityAttachedUnit != null)

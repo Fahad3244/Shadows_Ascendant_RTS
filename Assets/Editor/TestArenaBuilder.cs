@@ -8,7 +8,7 @@ using UnityEngine.AI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-public static class TestArenaBuilder
+public static partial class TestArenaBuilder
 {
     private const float Gap = 140f;
 

@@ -45,6 +45,7 @@ public class UnitCarryState : UnitStateBase
 	private void Deposit()
 	{
 		Debug.Log("Resource Deposited!");
+		if (LevelMessenger.Instance != null) LevelMessenger.Instance.Say("LOAD DELIVERED to the depot");
 		_agent.ReturnToPlayer();
 	}
 
