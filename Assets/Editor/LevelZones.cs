@@ -30,7 +30,8 @@ public static partial class TestArenaBuilder
         AddPoi("Roadblock", -58f, -12f, 16f, 12f, -15f);
         AddPoi("CarryYard", -45f, 38f, 17f, 22.5f, 38f);
         AddPoi("Outpost", 62f, 45f, 30f, 21f, 40f);
-        AddPoi("Ruins", -70f, 82f, 22f, 0f, 80f);
+        AddPoi("Ruins", -78f, 80f, 22f, 10f, 53f);
+        AddPoi("BossArena", 0f, 88f, 17f, 0f, 68f);
     }
 
     private static Poi GetPoi(string name)
@@ -92,6 +93,7 @@ public static partial class TestArenaBuilder
         BuildCarryYard();     // F8
         BuildOutpost();       // F9
         BuildRuins();         // Tab menu only
+        BuildBossArena();     // Tab menu only
         // Step 21: BuildBossArena();
         BuildRallyPoints();
     }
@@ -870,6 +872,150 @@ public static partial class TestArenaBuilder
     {
         PlaceRally("Rally_BeforeGate", 14f, -6f, 6);
         PlaceRally("Rally_AfterGate", 29f, 28f, 6);
-        PlaceRally("Rally_Ruins", -50f, 72f, 8);
+        PlaceRally("Rally_Ruins", -36f, 62f, 8);
+        PlaceRally("Rally_BossApproach", 16f, 60f, 8);
+    }
+
+    private static GameObject FindDeep(string name)
+    {
+        foreach (Transform t in _root.GetComponentsInChildren<Transform>(true))
+            if (t.name == name) return t.gameObject;
+        Debug.LogWarning("[Level] Not found: " + name);
+        return null;
+    }
+
+    private static void HookVoid(Component src, string field, UnityEngine.Events.UnityAction call)
+    {
+        UnityEngine.Events.UnityEvent ev = FindEvent(src, field);
+        if (ev == null) return;
+        UnityEditor.Events.UnityEventTools.AddVoidPersistentListener(ev, call);
+        EditorUtility.SetDirty(src);
+    }
+
+    private static void HookString(Component src, string field, UnityEngine.Events.UnityAction<string> call, string arg)
+    {
+        UnityEngine.Events.UnityEvent ev = FindEvent(src, field);
+        if (ev == null) return;
+        UnityEditor.Events.UnityEventTools.AddStringPersistentListener(ev, call, arg);
+        EditorUtility.SetDirty(src);
+    }
+
+    // ---------------------------------------------------------------- boss arena (end of the path)
+
+    private static void BuildBossArena()
+    {
+        Transform z = PoiZone("BossArena");
+        AddSpawn(z, 0f, -30f);
+
+        EnemyData addData = MakeEnemyData("EnemyData_BossAdd", 150f, 8f, 12f, 1f, 1f, 3.8f);
+        EnemyData escort = MakeEnemyData("EnemyData_BossEscort", 200f, 10f, 12f, 1f, 1f, 3.5f);
+
+        // ----- octagon wall; the south side is the sealed door -----
+        Transform wall = new GameObject("ArenaWall").transform;
+        wall.SetParent(z, false);
+        float R = 15f;
+        GameObject door = null;
+        for (int k = 0; k < 8; k++)
+        {
+            float a1 = (22.5f + k * 45f) * Mathf.Deg2Rad, a2 = (22.5f + (k + 1) * 45f) * Mathf.Deg2Rad;
+            Vector2 p1 = new Vector2(Mathf.Cos(a1), Mathf.Sin(a1)) * R, p2 = new Vector2(Mathf.Cos(a2), Mathf.Sin(a2)) * R;
+            GameObject seg = FenceSegment(wall, k == 5 ? "BossDoor" : "Wall" + k, p1.x, p1.y, p2.x, p2.y);
+            if (k == 5) door = seg;   // segment between 247.5 and 292.5 degrees = south
+        }
+        if (door != null)
+            Prim(PrimitiveType.Cube, "DoorBoards", door.transform, new Vector3(0f, 1.2f, 0f), new Vector3(0.4f, 2.4f, 11f), Mat("GateWood", new Color(0.35f, 0.2f, 0.1f)), false);
+
+        // ----- torches (decoration) -----
+        foreach (Vector2 tp in new[] { new Vector2(-9f, -6f), new Vector2(9f, -6f), new Vector2(-9f, 8f), new Vector2(9f, 8f) })
+        {
+            Prim(PrimitiveType.Cube, "TorchPost", z, new Vector3(tp.x, _groundY + 1.2f, tp.y), new Vector3(0.4f, 2.4f, 0.4f), Mat("FenceWood", new Color(0.55f, 0.36f, 0.18f)), false);
+            GameObject f = Prim(PrimitiveType.Cube, "TorchFlame", z, new Vector3(tp.x, _groundY + 2.7f, tp.y), new Vector3(0.7f, 0.9f, 0.7f), Mat("Flame", new Color(1f, 0.55f, 0.1f)), false);
+            GameObject lg = new GameObject("Light");
+            lg.transform.SetParent(f.transform, false);
+            Light l = lg.AddComponent<Light>();
+            l.type = LightType.Point;
+            l.color = new Color(1f, 0.6f, 0.25f);
+            l.range = 12f;
+            l.intensity = 2f;
+        }
+
+        // ----- three seal stones on the approach -----
+        GameObject[] on = new GameObject[3], off = new GameObject[3];
+        for (int i = 0; i < 3; i++)
+        {
+            float x = -7f + i * 7f;
+            off[i] = Prim(PrimitiveType.Cube, "SealStoneOff" + i, z, new Vector3(x, _groundY + 1.6f, -22f), new Vector3(1.6f, 3.2f, 1.6f), Mat("RuneOff", new Color(0.25f, 0.25f, 0.3f)), true);
+            on[i] = Prim(PrimitiveType.Cube, "SealStoneOn" + i, z, new Vector3(x, _groundY + 1.6f, -22f), new Vector3(1.6f, 3.2f, 1.6f), Mat("RuneOn", new Color(0.3f, 0.9f, 1f)), false);
+            GameObject lg = new GameObject("Glow");
+            lg.transform.SetParent(on[i].transform, false);
+            lg.transform.localPosition = new Vector3(0f, 2f, 0f);
+            Light l = lg.AddComponent<Light>();
+            l.type = LightType.Point;
+            l.color = new Color(0.4f, 0.9f, 1f);
+            l.range = 10f;
+            l.intensity = 2.5f;
+            on[i].SetActive(false);
+        }
+
+        GameObject gateObj = new GameObject("BossGate");
+        gateObj.transform.SetParent(z, false);
+        BossGate bg = gateObj.AddComponent<BossGate>();
+        bg.needed = 3;
+        bg.door = door;
+        bg.stonesOn = on;
+        bg.stonesOff = off;
+        EditorUtility.SetDirty(bg);
+
+        // ----- boss, escorts, phase-2 reinforcements -----
+        GameObject boss = AddBigEnemy(z, "Boss", 0f, 5f, _boss, 6, 2.2f, 3.4f, 4.8f, 6.5f);
+        FaceYaw(boss, 180f);
+        AddEnemy(z, "Boss_EscortA", -7f, 1f, escort, 3);
+        AddEnemy(z, "Boss_EscortB", 7f, 1f, escort, 3);
+        GameObject addA = AddEnemy(z, "Boss_AddA", -9f, 8f, addData, 3);
+        GameObject addB = AddEnemy(z, "Boss_AddB", 9f, 8f, addData, 3);
+        GameObject addC = AddEnemy(z, "Boss_AddC", 0f, 11f, addData, 3);
+        GameObject[] adds = { addA, addB, addC };
+        foreach (GameObject g in adds) if (g != null) g.SetActive(false);
+
+        GameObject ph = new GameObject("Boss_Phase2");
+        ph.transform.SetParent(z, false);
+        BossPhase bp = ph.AddComponent<BossPhase>();
+        bp.boss = boss != null ? boss.GetComponent<Health>() : null;
+        bp.threshold = 0.5f;
+        bp.activate = adds;
+        bp.message = "THE BOSS ROARS! Reinforcements charge in from the shadows.";
+        EditorUtility.SetDirty(bp);
+
+        GameObject vic = new GameObject("VictoryScreen");
+        vic.transform.SetParent(z, false);
+        VictoryScreen vs = vic.AddComponent<VictoryScreen>();
+        if (boss != null) HookVoid(boss.GetComponent<Health>(), "OnDeath", vs.Show);
+
+        // ----- wire the three seals to the earlier areas -----
+        GameObject key = FindDeep("Yard_Key");
+        if (key != null) HookString(key.GetComponent<MovableObject>(), "onDelivered", bg.Seal, "key");
+
+        GameObject ring = FindDeep("Outpost_Ring");
+        if (ring != null)
+        {
+            GameObject ws = new GameObject("Seal_OutpostRing");
+            ws.transform.SetParent(z, false);
+            WaypointSeal w = ws.AddComponent<WaypointSeal>();
+            w.target = ring.GetComponent<Waypoint>();
+            w.gate = bg;
+            w.id = "outpost";
+            EditorUtility.SetDirty(w);
+        }
+
+        GameObject tg = FindDeep("Temple_Guardian");
+        if (tg != null) HookString(tg.GetComponent<Health>(), "OnDeath", bg.Seal, "ruins");
+
+        // ----- signs and hints -----
+        StationSign(z, 0f, -26f, "3 SEALS OPEN THE ARENA", 0f);
+        HintPad(z, 0f, -30f, "THE BOSS ARENA",
+            "GOAL: defeat the boss and finish the level.\nHOW: the door is sealed. Three stones in front of it light up as you break seals elsewhere in the jungle: 1) carry the key to the yellow disc in the Carry Yard, 2) capture the ring at the Outpost, 3) defeat the temple guardian in the Ruins. The MISSIONS list on the left shows which are done.\nRESULT: after the third seal the door opens. Rally with recruits at the blue pad first.",
+            "SEALED: BREAK 3 SEALS", 6f, 0f, 0f);
+        HintPad(z, 0f, -10f, "THE BOSS",
+            "GOAL: bring the boss down. It has 3000 health, 6 attach points and hits for 60, so troops die fast.\nHOW: send a mixed group and fill all 6 attach points. About 5 seconds after troops attach, the boss glows yellow and throws them off, so tap right-click to recall them during the glow, then send them back. Attack from behind while it is busy for triple damage. At half health, 3 reinforcements join. Stun (N) is a test key only.\nRESULT: when it falls, a victory screen shows your time and surviving troops.");
     }
 }
