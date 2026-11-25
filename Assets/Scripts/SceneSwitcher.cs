@@ -6,7 +6,7 @@ public class SceneSwitcher : MonoBehaviour
 {
     // Change these if your scene names are different
     private const string ArenaSceneName = "Prototype_TestArena";
-    private const string NormalSceneName = ""; // empty = first other scene in Build Settings
+    private const string NormalSceneName = "Prototype_Level";
     private static readonly KeyCode SwitchKey = KeyCode.F10;
     private static readonly bool ShowHint = true;
 
@@ -70,7 +70,7 @@ public class SceneSwitcher : MonoBehaviour
             _style = new GUIStyle(GUI.skin.label) { fontSize = 14 };
             _style.normal.textColor = Color.white;
         }
-        string next = SceneManager.GetActiveScene().name == ArenaSceneName ? "Normal scene" : "Test Arena";
+        string next = SceneManager.GetActiveScene().name == ArenaSceneName ? "Playable Level" : "Test Arena";
         GUI.Label(new Rect(10, Screen.height - 28, 400, 24), "F10: switch to " + next, _style);
     }
 }

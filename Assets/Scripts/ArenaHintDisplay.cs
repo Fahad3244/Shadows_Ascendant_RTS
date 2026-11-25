@@ -111,5 +111,5 @@ public class ArenaHintDisplay : MonoBehaviour
         "<color=#9ad>N</color> stun enemies   <color=#9ad>U</color> human target aware / unaware\n" +
         "<color=#9ad>E</color> wake enemy   <color=#9ad>M</color> killer   <color=#9ad>B</color> open walls   <color=#9ad>K / L</color> flip waypoint\n\n" +
         "<color=#9ad>Tab</color> station list (level only): <color=#9ad>[ ]</color> choose, <color=#9ad>Enter</color> go\n" +
-        "<color=#9ad>F1</color> Hub   <color=#9ad>F2-F9</color> stations   <color=#9ad>H</color> hide   <color=#9ad>F12</color> reset";
+        "<color=#9ad>F1</color> Hub   <color=#9ad>F2-F9</color> stations   <color=#9ad>F10</color> level / test arena   <color=#9ad>H</color> hide   <color=#9ad>F12</color> reset";
 }

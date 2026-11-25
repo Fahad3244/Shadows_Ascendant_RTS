@@ -66,16 +66,20 @@ public static partial class TestArenaBuilder
         BuildZones();
         BuildLevelHelpers(player);
 
+        BuildDecor();
+        GameObject introGo = new GameObject("LevelIntro");
+        introGo.transform.SetParent(_root, false);
+        introGo.AddComponent<LevelIntro>();
+
         ArchiveOldContent();
         PrepareScene();
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
-        List<EditorBuildSettingsScene> list = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
-        bool found = false;
-        foreach (EditorBuildSettingsScene s in list)
-            if (s.path == levelPath) { s.enabled = true; found = true; }
-        if (!found) list.Add(new EditorBuildSettingsScene(levelPath, true));
+        List<EditorBuildSettingsScene> list = new List<EditorBuildSettingsScene>();
+        list.Add(new EditorBuildSettingsScene(levelPath, true));
+        foreach (EditorBuildSettingsScene s in EditorBuildSettings.scenes)
+            if (s.path != levelPath) list.Add(s);
         EditorBuildSettings.scenes = list.ToArray();
 
         TryBake();
