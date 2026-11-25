@@ -11,6 +11,7 @@ public static partial class TestArenaBuilder
 
     private struct Poi { public string name; public Vector2 center; public float radius; public Vector2 junction; }
     private static readonly List<Poi> Pois = new List<Poi>();
+    private static readonly List<string> SpawnNames = new List<string>();
 
     private static void AddPoi(string name, float cx, float cz, float r, float jx, float jz)
     {
@@ -21,13 +22,15 @@ public static partial class TestArenaBuilder
     // junction = the point on the main path where the trail starts.
     private static void DefinePois()
     {
+        SpawnNames.Clear();
         Pois.Clear();
         AddPoi("GoldHollow", -58f, -64f, 16f, 0f, -66f);
         AddPoi("StashGlade", 58f, -64f, 16f, 0f, -54f);
         AddPoi("SentryGlade", 62f, -10f, 16f, 18f, -8f);
         AddPoi("Roadblock", -58f, -12f, 16f, 12f, -15f);
-        AddPoi("CarryYard", -60f, 48f, 17f, 14f, 48f);
+        AddPoi("CarryYard", -45f, 38f, 17f, 22.5f, 38f);
         AddPoi("Outpost", 62f, 45f, 30f, 21f, 40f);
+        AddPoi("Ruins", -70f, 82f, 22f, 0f, 80f);
     }
 
     private static Poi GetPoi(string name)
@@ -88,7 +91,7 @@ public static partial class TestArenaBuilder
         BuildGate();          // F7
         BuildCarryYard();     // F8
         BuildOutpost();       // F9
-        // Step 20: BuildRuins();
+        BuildRuins();         // Tab menu only
         // Step 21: BuildBossArena();
     }
 
@@ -194,7 +197,7 @@ public static partial class TestArenaBuilder
     private static UnityEngine.Events.UnityEvent FindEvent(Component src, string field)
     {
         if (src == null) return null;
-        FieldInfo f = src.GetType().GetField(field, BindingFlags.NonPublic | BindingFlags.Instance);
+        FieldInfo f = src.GetType().GetField(field, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
         UnityEngine.Events.UnityEvent ev = f != null ? f.GetValue(src) as UnityEngine.Events.UnityEvent : null;
         if (ev == null) Debug.LogWarning("[Level] Could not hook " + field + " on " + src.name);
         return ev;
@@ -238,6 +241,7 @@ public static partial class TestArenaBuilder
         sp.transform.SetParent(zone, false);
         sp.transform.localPosition = new Vector3(x, _playerY, z);
         Spawns.Add(sp.transform);
+        SpawnNames.Add(System.Text.RegularExpressions.Regex.Replace(zone.name, "(?<=[a-z])(?=[A-Z])", " "));
     }
 
     private static void BuildLevelHelpers(GameObject player)
@@ -252,6 +256,7 @@ public static partial class TestArenaBuilder
         helper.player = player != null ? player.transform : null;
         helper.swarm = UnityEngine.Object.FindObjectOfType<SwarmController>();
         helper.spawns = Spawns.ToArray();
+        helper.spawnNames = SpawnNames.ToArray();
         helper.helpPanel = helpPanel;
         EditorUtility.SetDirty(helper);
 
@@ -615,5 +620,230 @@ public static partial class TestArenaBuilder
         HintPad(z, -20f, 10f, "THE BAIT",
             "GOAL: collect the gold pile to the north-east of this pad.\nHOW: tap-send one troop at it. It looks too easy. When the gold is lifted, enemies hidden in the trees wake up and charge. Keep a group close and hold left-click to answer the ambush. If the carrier dies, the gold drops where it fell and can be picked up again.\nRESULT: a banner says AMBUSH, and the gold counts once a troop delivers it to you.",
             "FREE GOLD ...", 4f, 0f, 90f);
+    }
+
+    // ---------------------------------------------------------------- the ancient ruins (north-west jungle)
+
+    private class RunePillar { public GameObject wheel, lit, unlit, dormant; }
+
+    private static MissionStep NewStep(Transform parent, string name)
+    {
+        GameObject g = new GameObject(name);
+        g.transform.SetParent(parent, false);
+        return g.AddComponent<MissionStep>();
+    }
+
+    private static void HookStep(Component src, string field, MissionStep step)
+    {
+        UnityEngine.Events.UnityEvent ev = FindEvent(src, field);
+        if (ev == null || step == null) return;
+        UnityEditor.Events.UnityEventTools.AddVoidPersistentListener(ev, step.Complete);
+        EditorUtility.SetDirty(src);
+    }
+
+    private static RunePillar MakePillar(Transform z, string name, float x, float zz, float obDx, float obDz,
+        int troops, bool dormant, string label, string dormantSign)
+    {
+        RunePillar p = new RunePillar();
+        p.wheel = Clone("Interactable", z, x, zz, name + "_Wheel");
+        if (p.wheel != null)
+        {
+            Set<AttachableTarget>(p.wheel, "category", (int)InteractionCategory.Interactable);
+            Set<AttachableTarget>(p.wheel, "requiredUnitsToMove", troops);
+            Set<AttachableTarget>(p.wheel, "maxAttachSlots", 5);
+            Set<InteractableObject>(p.wheel, "operateDuration", 4f);
+            Set<InteractableObject>(p.wheel, "singleUse", true);
+            Set<InteractableObject>(p.wheel, "resetProgressWhenTroopsLeave", true);
+            InteractableObject io = p.wheel.GetComponent<InteractableObject>();
+            HookSay(io, "onOperateStart", "THE RUNE IS CHARGING... keep the troops on it!");
+            HookSay(io, "onOperateStop", "The rune faded because the troops left it. Progress is lost, try again.");
+        }
+
+        float ox = x + obDx, oz = zz + obDz;
+        GameObject ob = Prim(PrimitiveType.Cube, name + "_Obelisk", z, new Vector3(ox, _groundY + 2.25f, oz), new Vector3(1.2f, 4.5f, 1.2f), Mat("RuneStone", new Color(0.42f, 0.42f, 0.48f)), true);
+        NavMeshObstacle nob = ob.AddComponent<NavMeshObstacle>();
+        nob.shape = NavMeshObstacleShape.Box;
+        nob.carving = true;
+        nob.size = Vector3.one;
+        p.unlit = Prim(PrimitiveType.Cube, name + "_CapOff", z, new Vector3(ox, _groundY + 5f, oz), new Vector3(1.5f, 0.9f, 1.5f), Mat("RuneOff", new Color(0.25f, 0.25f, 0.3f)), false);
+        p.lit = Prim(PrimitiveType.Cube, name + "_CapOn", z, new Vector3(ox, _groundY + 5f, oz), new Vector3(1.5f, 0.9f, 1.5f), Mat("RuneOn", new Color(0.3f, 0.9f, 1f)), false);
+        GameObject lg = new GameObject("Glow");
+        lg.transform.SetParent(p.lit.transform, false);
+        lg.transform.localPosition = new Vector3(0f, 1.5f, 0f);
+        Light l = lg.AddComponent<Light>();
+        l.type = LightType.Point;
+        l.color = new Color(0.4f, 0.9f, 1f);
+        l.range = 12f;
+        l.intensity = 2.5f;
+        p.lit.SetActive(false);
+        StationSign(z, ox + 3.4f, oz, label, 0f);
+
+        if (dormant)
+        {
+            if (p.wheel != null) p.wheel.SetActive(false);
+            p.dormant = new GameObject(name + "_Dormant");
+            p.dormant.transform.SetParent(z, false);
+            Prim(PrimitiveType.Cylinder, "Slab", p.dormant.transform, new Vector3(x, _groundY + 0.07f, zz), new Vector3(3.6f, 0.06f, 3.6f), Mat("RuneOff", new Color(0.25f, 0.25f, 0.3f)), false);
+            StationSign(p.dormant.transform, x, zz - 3.5f, dormantSign, 0f);
+        }
+        return p;
+    }
+
+    private static void BuildRuins()
+    {
+        Transform z = PoiZone("Ruins");
+        JunctionSign("Ruins", "ANCIENT RUINS");
+        AddSpawn(z, 17f, -3f);
+        Spawns[Spawns.Count - 1].localRotation = Quaternion.Euler(0f, -90f, 0f);
+
+        EnemyData warden = MakeEnemyData("EnemyData_Warden", 700f, 14f, 9f, 1f, 1.2f, 3.2f);
+        EnemyData cultist = MakeEnemyData("EnemyData_Cultist", 120f, 5f, 8f, 1f, 1f, 3.5f);
+        EnemyData escort = MakeEnemyData("EnemyData_TempleEscort", 150f, 6f, 10f, 1f, 1f, 3.5f);
+
+        // ----- ruined columns around the edge (decoration) -----
+        Material ruin = Mat("RuinStone", new Color(0.62f, 0.6f, 0.55f));
+        for (int i = 0; i < 9; i++)
+        {
+            float ang = i * 40f + 10f;
+            if (Mathf.Abs(Mathf.DeltaAngle(ang, 0f)) < 28f) continue;
+            float rx = Mathf.Cos(ang * Mathf.Deg2Rad) * 23f, rz = Mathf.Sin(ang * Mathf.Deg2Rad) * 23f;
+            if (rx > 0f && rx < 15f && rz < -8f) continue; // temple
+            float h = R(1.5f, 4f);
+            GameObject col = Prim(PrimitiveType.Cube, "BrokenColumn", z, new Vector3(rx, _groundY + h * 0.5f, rz), new Vector3(1.4f, h, 1.4f), ruin, true);
+            NavMeshObstacle co = col.AddComponent<NavMeshObstacle>();
+            co.shape = NavMeshObstacleShape.Box;
+            co.carving = true;
+            co.size = Vector3.one;
+            Prim(PrimitiveType.Cube, "Rubble", z, new Vector3(rx + R(-2f, 2f), _groundY + 0.3f, rz + R(-2f, 2f)), new Vector3(1.1f, 0.6f, 0.9f), ruin, false);
+        }
+
+        // ----- the three rune pillars -----
+        RunePillar p1 = MakePillar(z, "Rune1", 7f, 11f, 0f, 4.5f, 2, false, "RUNE 1", null);
+        RunePillar p2 = MakePillar(z, "Rune2", -9f, 12f, 0f, 4.5f, 2, true, "RUNE 2", "RUNE 2 IS ASLEEP: LIGHT RUNE 1 FIRST");
+        RunePillar p3 = MakePillar(z, "Rune3", -14f, -12f, 0f, 4.5f, 3, true, "RUNE 3", "RUNE 3 IS ASLEEP: PLACE THE FRAGMENT FIRST");
+
+        // ----- guards -----
+        FaceYaw(AddEnemy(z, "Rune1_GuardA", 3f, 14f, _weak, 3), 180f);
+        FaceYaw(AddEnemy(z, "Rune1_GuardB", 10f, 16f, _weak, 3), 180f);
+        FaceYaw(AddEnemy(z, "Rune2_Warden", -4f, 7f, warden, 4), 150f);
+        AddEnemy(z, "Rune3_CultistA", -19f, -14f, cultist, 3);
+        AddEnemy(z, "Rune3_CultistB", -14f, -18f, cultist, 3);
+        AddEnemy(z, "Rune3_CultistC", -18f, -8f, cultist, 3);
+
+        // ----- the rune fragment (hidden until rune 2 is lit) -----
+        GameObject frag = Clone("Retrievable", z, -14f, -1f, "Ruins_Fragment");
+        Prim(PrimitiveType.Cylinder, "FragmentPedestal", z, new Vector3(-8f, _groundY + 0.07f, -6f), new Vector3(3.6f, 0.05f, 3.6f), Mat("KeySlot", new Color(1f, 0.85f, 0.2f)), false);
+        GameObject dest = new GameObject("Ruins_FragmentSlot");
+        dest.transform.SetParent(z, false);
+        dest.transform.localPosition = new Vector3(-8f, _groundY, -6f);
+        GameObject marker = Disc(dest.transform, "Marker", 0f, 0f, 3f, new Color(0.2f, 1f, 0.4f));
+        marker.transform.localPosition = new Vector3(0f, 0.08f, 0f);
+        marker.SetActive(false);
+        if (frag != null)
+        {
+            Set<AttachableTarget>(frag, "category", (int)InteractionCategory.Retrievable);
+            Set<AttachableTarget>(frag, "requiredUnitsToMove", 1);
+            Set<AttachableTarget>(frag, "maxAttachSlots", 3);
+            Set<MovableObject>(frag, "fixedDestination", dest.transform);
+            Set<MovableObject>(frag, "destinationMarker", marker);
+            frag.SetActive(false);
+        }
+
+        // ----- the temple (walls, door, guardian, escorts, treasure) -----
+        Transform temple = new GameObject("Temple").transform;
+        temple.SetParent(z, false);
+        FenceSegment(temple, "WallWest", 2f, -20f, 2f, -10f);
+        FenceSegment(temple, "WallEast", 12f, -20f, 12f, -10f);
+        FenceSegment(temple, "WallSouth", 2f, -20f, 12f, -20f);
+        FenceSegment(temple, "WallNorthA", 2f, -10f, 4.5f, -10f);
+        FenceSegment(temple, "WallNorthB", 9.5f, -10f, 12f, -10f);
+        GameObject templeDoor = FenceSegment(temple, "TempleDoor", 4.5f, -10f, 9.5f, -10f);
+        Prim(PrimitiveType.Cube, "DoorBoards", templeDoor.transform, new Vector3(0f, 1f, 0f), new Vector3(0.3f, 2f, 4.8f), Mat("GateWood", new Color(0.35f, 0.2f, 0.1f)), false);
+
+        GameObject guardian = AddBigEnemy(z, "Temple_Guardian", 7f, -16f, _mini, 5, 1.6f, 2.6f, 3.8f, 5f);
+        GameObject escA = AddEnemy(z, "Temple_EscortA", 4f, -13f, escort, 3);
+        GameObject escB = AddEnemy(z, "Temple_EscortB", 10f, -13f, escort, 3);
+        foreach (GameObject g in new[] { guardian, escA, escB }) if (g != null) g.SetActive(false);
+
+        PickupItemAt(z, "TestGear", "Temple_GearA", 4f, -18.5f, 1);
+        PickupItemAt(z, "TestGear", "Temple_GearB", 10f, -18.5f, 1);
+        PickupItemAt(z, "TestGold", "Temple_Gold", 7f, -19f, 0);
+        PickupItemAt(z, "TestPotion", "Temple_Potion", 7f, -18f, 0);
+        GameObject[] rewards =
+        {
+            z.Find("Temple_GearA").gameObject, z.Find("Temple_GearB").gameObject,
+            z.Find("Temple_Gold").gameObject, z.Find("Temple_Potion").gameObject
+        };
+        foreach (GameObject r in rewards) r.SetActive(false);
+
+        // ----- mission steps -----
+        MissionStep intro = NewStep(z, "Mission_Intro");
+        intro.trackerId = "ruins";
+        intro.beginRadius = 28f;
+        intro.beginText = "RUINS 0/3 | Light rune 1: the wheel in the north-east.";
+        intro.beginMessage = "THE ANCIENT RUINS: wake the temple. Follow the MISSIONS list on the left.";
+
+        MissionStep s1 = NewStep(z, "Mission_Step1");
+        s1.trackerId = "ruins";
+        s1.nextText = "RUINS 1/3 | Light rune 2: the wheel in the north-west. A warden guards it.";
+        s1.message = "RUNE 1 LIT! Rune 2 in the north-west is awake. A warden guards it.";
+        s1.activate = new[] { p1.lit, p2.wheel };
+        s1.deactivate = new[] { p1.unlit, p2.dormant };
+
+        MissionStep s2 = NewStep(z, "Mission_Step2");
+        s2.trackerId = "ruins";
+        s2.nextText = "RUINS 2/3 | Carry the rune fragment (west) to the yellow disc (south-west).";
+        s2.message = "RUNE 2 LIT! A rune fragment rose from the ground in the west. Carry it to the yellow disc.";
+        s2.activate = new[] { p2.lit, frag };
+        s2.deactivate = new[] { p2.unlit };
+
+        MissionStep s3 = NewStep(z, "Mission_Step3");
+        s3.trackerId = "ruins";
+        s3.nextText = "RUINS 2/3 | Light rune 3: the wheel in the south-west. 3 troops needed, cultists guard it.";
+        s3.message = "FRAGMENT PLACED! Rune 3 in the south-west is awake. It needs 3 troops, and cultists guard it.";
+        s3.activate = new[] { p3.wheel };
+        s3.deactivate = new[] { p3.dormant };
+
+        MissionStep s4 = NewStep(z, "Mission_Step4");
+        s4.trackerId = "ruins";
+        s4.nextText = "RUINS 3/3 | The temple is open (south-east). Defeat its guardian.";
+        s4.message = "ALL RUNES LIT! The temple door opens, and something large wakes up inside...";
+        s4.activate = new[] { p3.lit, guardian, escA, escB };
+        s4.deactivate = new[] { p3.unlit, templeDoor };
+
+        MissionStep s5 = NewStep(z, "Mission_Step5");
+        s5.trackerId = "ruins";
+        s5.nextText = "RUINS COMPLETE | Guardian defeated. Take the treasure in the temple.";
+        s5.finishes = true;
+        s5.message = "GUARDIAN DEFEATED! Treasure appeared in the temple. RUINS COMPLETE!";
+        s5.activate = rewards;
+
+        if (p1.wheel != null) HookStep(p1.wheel.GetComponent<InteractableObject>(), "onCompleted", s1);
+        if (p2.wheel != null) HookStep(p2.wheel.GetComponent<InteractableObject>(), "onCompleted", s2);
+        if (frag != null) HookStep(frag.GetComponent<MovableObject>(), "onDelivered", s3);
+        if (p3.wheel != null) HookStep(p3.wheel.GetComponent<InteractableObject>(), "onCompleted", s4);
+        if (guardian != null) HookStep(guardian.GetComponent<Health>(), "OnDeath", s5);
+        foreach (MissionStep s in new[] { intro, s1, s2, s3, s4, s5 }) EditorUtility.SetDirty(s);
+
+        // ----- signs and hints (every pad is at least 9 units from the next one) -----
+        StationSign(z, 2.5f, -7f, "TEMPLE: OPENS AFTER ALL 3 RUNES", 180f);
+
+        HintPad(z, 17f, -3f, "THE ANCIENT RUINS",
+            "GOAL: wake the temple and defeat its guardian.\nHOW: this is a mission with five steps. The MISSIONS list on the left of the screen always shows the current one. 1) Light rune 1 (north-east). 2) Light rune 2 (north-west). 3) Carry the rune fragment (west) to the yellow disc. 4) Light rune 3 (south-west). 5) Enter the temple (south-east). Each step unlocks the next, and each pad tells you what to do.\nRESULT: a message appears at every step, and the temple door opens after the third rune.",
+            "THE RUINS: A 5-STEP MISSION", 0f, 4f, 0f);
+        HintPad(z, 18f, 10f, "STEP 1: RUNE 1",
+            "GOAL: light the first rune pillar, the stone wheel to the west of this pad.\nHOW: two guards stand beside it. Deal with them first (press Z on one, hold left-click). Then walk up to the wheel and tap left-click twice, one troop each. The number counts down 2, 1, 0. At 0 it charges for 4 seconds. If a troop leaves, the charge restarts.\nRESULT: the obelisk behind the wheel lights up and rune 2 wakes up.",
+            "<<< STEP 1: RUNE 1", 0f, 4f, 0f);
+        HintPad(z, -3f, 17f, "STEP 2: RUNE 2",
+            "GOAL: light the second pillar (the wheel to the south-west of this pad). It sleeps until rune 1 is lit.\nHOW: a warden guards it. About 5 seconds after troops attach to it, it glows yellow and then throws them off. Tap right-click during the glow to recall them, then send them back. Kill the warden first, then tap left-click twice at the wheel.\nRESULT: rune 2 lights up and a rune fragment appears in the west.",
+            "STEP 2: RUNE 2 (WARDEN)", 0f, 4f, 0f);
+        HintPad(z, -13f, 5f, "STEP 3: THE FRAGMENT",
+            "GOAL: carry the rune fragment to the yellow disc in the south.\nHOW: the fragment appears south of this pad after rune 2 is lit. Walk up to it and tap left-click once. One troop carries it to the yellow disc. If you pressed Z on it, press X so it can move.\nRESULT: the fragment is placed and rune 3 wakes up.",
+            "STEP 3: FRAGMENT TO THE YELLOW DISC", 0f, 4f, 0f);
+        HintPad(z, -5f, -13f, "STEP 4: RUNE 3",
+            "GOAL: light the third pillar (the wheel to the west of this pad). It needs 3 troops.\nHOW: three cultists guard it. Clear them first with a group (hold left-click). Then tap left-click 3 times at the wheel. The number counts 3, 2, 1, 0, and then it charges for 4 seconds.\nRESULT: all three runes burn, the temple door opens and its guardian wakes up.",
+            "STEP 4: RUNE 3 (3 TROOPS)", 0f, 4f, 0f);
+        HintPad(z, 6f, -6f, "STEP 5: THE TEMPLE",
+            "GOAL: defeat the temple guardian and take the treasure.\nHOW: the door south of this pad opens when all three runes are lit. The guardian is a miniboss with 1500 health, 5 attach points and two escorts. It hits for 40, so troops die fast. Send a mixed group: melee fill the 5 points, ranged add safe damage. A lone front attacker gets countered, so go in as a group. Recall hurt troops and send fresh ones.\nRESULT: when it falls, treasure appears inside the temple and the mission is complete.");
     }
 }
