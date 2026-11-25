@@ -27,6 +27,7 @@ public static partial class TestArenaBuilder
         AddPoi("SentryGlade", 62f, -10f, 16f, 18f, -8f);
         AddPoi("Roadblock", -58f, -12f, 16f, 12f, -15f);
         AddPoi("CarryYard", -60f, 48f, 17f, 14f, 48f);
+        AddPoi("Outpost", 62f, 45f, 30f, 21f, 40f);
     }
 
     private static Poi GetPoi(string name)
@@ -86,7 +87,7 @@ public static partial class TestArenaBuilder
         BuildRoadblock();     // F6
         BuildGate();          // F7
         BuildCarryYard();     // F8
-        // Step 19: BuildOutpost();
+        BuildOutpost();       // F9
         // Step 20: BuildRuins();
         // Step 21: BuildBossArena();
     }
@@ -396,8 +397,8 @@ public static partial class TestArenaBuilder
         EnemyData guardData = MakeEnemyData("EnemyData_GateGuard", 200f, 6f, 12f, 1f, 1f, 3.5f);
 
         // wall across the whole level, one 8-unit gap closed by the door
-        FenceSegment(g, "WallWest", -129f, 0f, -4f, 0f);
-        FenceSegment(g, "WallEast", 4f, 0f, 79f, 0f);
+        FenceSegment(g, "WallWest", -140f, 0f, -4f, 0f);   // world x -115, past the boundary at -111
+        FenceSegment(g, "WallEast", 4f, 0f, 90f, 0f);      // world x 115, past the boundary at 111
 
         GameObject door = Prim(PrimitiveType.Cube, "Gate_Door", g, new Vector3(0f, _groundY + 2f, 0f), new Vector3(8f, 4f, 0.7f), Mat("Door", new Color(0.5f, 0.3f, 0.1f)), true);
         NavMeshObstacle ob = door.AddComponent<NavMeshObstacle>();
@@ -515,5 +516,104 @@ public static partial class TestArenaBuilder
         HintPad(z, 6f, -13f, "JOB 2: THE KEY",
             "GOAL: open the vault. The gold and gear inside are fenced in and troops cannot reach them.\nHOW: stand next to the key and tap left-click once. One troop carries it to the yellow disc in front of the vault door. (If you used Z on it, press X so it can move.)\nRESULT: the key shows Placed, the vault door disappears and the loot can be collected.",
             "JOB 2: KEY TO THE VAULT", 0f, 3.5f, -90f);
+    }
+
+    // ---------------------------------------------------------------- outpost (east jungle, beyond the gate)
+
+    private static void BuildOutpost()
+    {
+        Transform z = PoiZone("Outpost");
+        JunctionSign("Outpost", "OUTPOST");
+        AddSpawn(z, -23f, -5f);
+        Spawns[Spawns.Count - 1].localRotation = Quaternion.Euler(0f, 90f, 0f);
+
+        EnemyData guardData = MakeEnemyData("EnemyData_OutpostGuard", 300f, 8f, 9f, 1f, 1f, 3.5f);
+        EnemyData hunterData = MakeEnemyData("EnemyData_CartHunter", 250f, 9f, 9f, 1f, 1.2f, 3.5f);
+        EnemyData ambushData = MakeEnemyData("EnemyData_Ambusher", 120f, 25f, 10f, 1f, 1f, 4f);
+
+        // ===== JOB 1: enemy-held ring with two guards =====
+        Waypoint ring = WP(z, "Outpost_Ring", 8f, 14f, 1);
+        if (ring != null)
+        {
+            Set<Waypoint>(ring.gameObject, "zoneRadius", 6f);
+            GameObject ann = new GameObject("Outpost_Announcer");
+            ann.transform.SetParent(z, false);
+            WaypointAnnouncer wa = ann.AddComponent<WaypointAnnouncer>();
+            wa.target = ring;
+            wa.capturedMessage = "OUTPOST CAPTURED! The ring is yours. Carts can now be delivered here.";
+            wa.lostMessage = "The enemy retook the ring! Carts can no longer be delivered here.";
+            EditorUtility.SetDirty(wa);
+        }
+        FaceYaw(AddEnemy(z, "Outpost_GuardA", 5f, 17f, guardData, 3), -90f);
+        FaceYaw(AddEnemy(z, "Outpost_GuardB", 11f, 17f, guardData, 3), -90f);
+
+        // ===== JOB 2: two carts and two hidden hunters beside the route =====
+        GameObject cartA = Movable(z, "Outpost_CartA", -6f, -19f);
+        GameObject cartB = Movable(z, "Outpost_CartB", -6f, -14f);
+        foreach (GameObject c in new[] { cartA, cartB })
+        {
+            if (c == null) continue;
+            Set<MovableObject>(c, "isCart", true);
+            Set<MovableObject>(c, "cartHealth", 400f);
+        }
+        FaceYaw(AddEnemy(z, "Outpost_CartHunterA", 0f, -2f, hunterData, 4), 200f);
+        FaceYaw(AddEnemy(z, "Outpost_CartHunterB", 4f, -6f, hunterData, 4), 160f);
+        Rock(z, -2.5f, 0f, 1.8f);
+        Rock(z, 6.5f, -4f, 1.5f);
+
+        // ===== JOB 3: sealed armory, opens when a cart arrives =====
+        Transform armory = new GameObject("Armory").transform;
+        armory.SetParent(z, false);
+        FenceSegment(armory, "WallWest", 16.5f, -15.5f, 16.5f, -8.5f);
+        FenceSegment(armory, "WallEast", 23.5f, -15.5f, 23.5f, -8.5f);
+        FenceSegment(armory, "WallSouth", 16.5f, -15.5f, 23.5f, -15.5f);
+        FenceSegment(armory, "WallNorthA", 16.5f, -8.5f, 18.5f, -8.5f);
+        FenceSegment(armory, "WallNorthB", 21.5f, -8.5f, 23.5f, -8.5f);
+        GameObject armoryGate = FenceSegment(armory, "ArmoryGate", 18.5f, -8.5f, 21.5f, -8.5f);
+        Prim(PrimitiveType.Cube, "GateBoards", armoryGate.transform, new Vector3(0f, 0.8f, 0f), new Vector3(0.25f, 1.5f, 2.8f), Mat("GateWood", new Color(0.35f, 0.2f, 0.1f)), false);
+        PickupItemAt(z, "TestGear", "Armory_GearA", 19f, -12f, 1);
+        PickupItemAt(z, "TestGear", "Armory_GearB", 21f, -11f, 1);
+        PickupItemAt(z, "TestGear", "Armory_GearC", 20.5f, -14f, 1);
+
+        foreach (GameObject c in new[] { cartA, cartB })
+        {
+            if (c == null) continue;
+            MovableObject mv = c.GetComponent<MovableObject>();
+            HookSay(mv, "onDelivered", "CART DELIVERED! The armory gate is open. Send troops for the gear.");
+            HookDeactivate(mv, "onDelivered", armoryGate);
+        }
+
+        // ===== BAIT: gold that wakes an ambush when lifted =====
+        PickupItemAt(z, "TestGold", "Trap_Gold", -14f, 18f, 0);
+        GameObject ambA = AddEnemy(z, "Trap_AmbusherA", -19f, 22f, ambushData, 3);
+        GameObject ambB = AddEnemy(z, "Trap_AmbusherB", -8f, 23f, ambushData, 3);
+        GameObject ambC = AddEnemy(z, "Trap_AmbusherC", -14f, 11f, ambushData, 3);
+        foreach (GameObject g in new[] { ambA, ambB, ambC }) if (g != null) g.SetActive(false);
+        GameObject trig = new GameObject("Trap_Trigger");
+        trig.transform.SetParent(z, false);
+        AmbushTrigger at = trig.AddComponent<AmbushTrigger>();
+        Transform bait = z.Find("Trap_Gold");
+        at.watched = bait != null ? bait.gameObject : null;
+        at.activate = new[] { ambA, ambB, ambC };
+        at.message = "AMBUSH! Enemies jumped out of the trees. Fight them off, or protect the troop carrying the gold.";
+        EditorUtility.SetDirty(at);
+
+        // ===== signs and hints =====
+        StationSign(z, 20f, -6f, "ARMORY: OPENS WHEN A CART ARRIVES", 180f);
+
+        HintPad(z, -23f, -5f, "THE OUTPOST",
+            "GOAL: take this outpost from the enemy and win its supplies.\nHOW: there are three jobs. JOB 1, capture the red ring to the north-east. JOB 2, escort a cart to that ring (it only works once the ring is yours). JOB 3, the armory in the south-east opens when a cart arrives. In the north-west there is some gold lying about.\nRESULT: a message appears every time you finish something.",
+            "THE OUTPOST: CAPTURE, ESCORT, ARMORY", 0f, 5f, 90f);
+        HintPad(z, -4f, 14f, "JOB 1: CAPTURE THE RING",
+            "GOAL: turn the red ring blue. Two guards defend it, and a ring cannot be captured while an enemy is inside it.\nHOW: press ` (all troops), walk into the middle of the ring and press Q to plant a guard flag. Your troops gather around the flag, fight whatever is near it, and capture the ring. More troops capture it faster. Afterwards hold right-click to recall them.\nRESULT: the ring turns blue and a banner says OUTPOST CAPTURED.",
+            "ENEMY RING: CAPTURE IT", 4f, 0f, 90f);
+        HintPad(z, -14f, -19f, "JOB 2: ESCORT A CART",
+            "GOAL: bring a cart to the captured ring. A cart only moves to a ring you own, so do job 1 first.\nHOW: press Z until the cart is outlined, tap left-click 3 times (one troop each, the number counts 3, 2, 1, 0), then press X. The cart rolls off by itself. Two hunters hide beside the route and attack the cart as it passes. Send your other troops at them (press Z on a hunter, hold left-click). Each cart has 400 health and there are two carts, so one is a spare.\nRESULT: at the ring the cart shows Placed and the armory opens.",
+            "CARTS: Z, SEND 3, THEN X", 4f, 0f, 90f);
+        HintPad(z, 20f, -1f, "JOB 3: THE ARMORY",
+            "GOAL: collect the gear inside the walled armory.\nHOW: it is sealed and troops cannot reach it. It opens when a cart arrives at the ring. Then tap-send troops at the gear. A troop can wear up to 4 pieces.\nRESULT: an Army strength popup appears for every piece equipped.");
+        HintPad(z, -20f, 10f, "THE BAIT",
+            "GOAL: collect the gold pile to the north-east of this pad.\nHOW: tap-send one troop at it. It looks too easy. When the gold is lifted, enemies hidden in the trees wake up and charge. Keep a group close and hold left-click to answer the ambush. If the carrier dies, the gold drops where it fell and can be picked up again.\nRESULT: a banner says AMBUSH, and the gold counts once a troop delivers it to you.",
+            "FREE GOLD ...", 4f, 0f, 90f);
     }
 }

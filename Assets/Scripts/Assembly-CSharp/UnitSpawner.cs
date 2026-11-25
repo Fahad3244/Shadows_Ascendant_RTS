@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.AI;
 
 public class UnitSpawner : MonoBehaviour
 {
@@ -34,7 +35,15 @@ public class UnitSpawner : MonoBehaviour
 		{
 			Vector3 nextSpawnOffset = GetNextSpawnOffset();
 			Vector3 position = base.transform.position + nextSpawnOffset;
+			if (NavMesh.SamplePosition(position, out NavMeshHit hit, 4f, NavMesh.AllAreas))
+				position = hit.position;
+			else if (NavMesh.SamplePosition(base.transform.position, out hit, 12f, NavMesh.AllAreas))
+				position = hit.position;
 			UnitAgent agent = unitPool.GetAgent(type, position, base.transform.rotation);
+			if (agent.NavAgent != null) agent.NavAgent.Warp(position);
+			float away = Vector3.Distance(position, base.transform.position);
+			if (away > 8f)
+				Debug.LogWarning($"[Spawn] troop placed {away:F1}m from the spawner. spawner={base.transform.position} placed={position}");
 			agent.Initialize(unit, type, unitManager, unitPool, base.transform.root);
 			return agent;
 		}
