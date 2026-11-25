@@ -86,6 +86,33 @@ public class PlayerUnitManager : MonoBehaviour
 		this.OnUnitsChanged?.Invoke();
 	}
 
+	// Re-creates lost troops, filling the type with the biggest deficit first. Returns how many were added.
+	public int ReinforceUpTo(int maxAdd)
+	{
+		int types = Enum.GetValues(typeof(UnitType)).Length;
+		int perType = initialTotalUnits / types;
+		int added = 0;
+		while (added < maxAdd)
+		{
+			UnitType worst = UnitType.Builder;
+			int worstCount = perType;
+			bool found = false;
+			foreach (UnitType t in Enum.GetValues(typeof(UnitType)))
+			{
+				int c = _allUnits.Count(u => u.type == t);
+				if (c < worstCount) { worstCount = c; worst = t; found = true; }
+			}
+			if (!found) break;
+			Unit nu = new Unit(worst);
+			nu.health = HealthFor(worst);
+			_allUnits.Add(nu);
+			_freeUnits[worst].Push(nu);
+			added++;
+		}
+		if (added > 0) OnUnitsChanged?.Invoke();
+		return added;
+	}
+
 	public bool TryGetFreeUnit(UnitType type, out Unit unit)
 	{
 		if (_freeUnits[type].Count > 0)

@@ -93,6 +93,7 @@ public static partial class TestArenaBuilder
         BuildOutpost();       // F9
         BuildRuins();         // Tab menu only
         // Step 21: BuildBossArena();
+        BuildRallyPoints();
     }
 
     // ---------------------------------------------------------------- helpers
@@ -845,5 +846,30 @@ public static partial class TestArenaBuilder
             "STEP 4: RUNE 3 (3 TROOPS)", 0f, 4f, 0f);
         HintPad(z, 6f, -6f, "STEP 5: THE TEMPLE",
             "GOAL: defeat the temple guardian and take the treasure.\nHOW: the door south of this pad opens when all three runes are lit. The guardian is a miniboss with 1500 health, 5 attach points and two escorts. It hits for 40, so troops die fast. Send a mixed group: melee fill the 5 points, ranged add safe damage. A lone front attacker gets countered, so go in as a group. Recall hurt troops and send fresh ones.\nRESULT: when it falls, treasure appears inside the temple and the mission is complete.");
+    }
+
+    // ---------------------------------------------------------------- rally points (recruit lost troops)
+
+    private static void PlaceRally(string name, float wx, float wz, int reserve)
+    {
+        Transform r = Zone(name, wx, wz);
+        GameObject pad = Prim(PrimitiveType.Cylinder, "RallyPad", r, new Vector3(0f, _groundY + 0.06f, 0f), new Vector3(7f, 0.04f, 7f), Mat("Rally", new Color(0.2f, 0.5f, 1f)), false);
+        Material wood = Mat("FenceWood", new Color(0.55f, 0.36f, 0.18f));
+        Prim(PrimitiveType.Cube, "FlagPole", r, new Vector3(0f, _groundY + 2.5f, 0f), new Vector3(0.2f, 5f, 0.2f), wood, false);
+        Prim(PrimitiveType.Cube, "Flag", r, new Vector3(0.9f, _groundY + 4.3f, 0f), new Vector3(1.8f, 1.1f, 0.1f), Mat("RallyFlag", new Color(0.2f, 0.5f, 1f)), false);
+        AddHint(pad.transform, "RALLY POINT",
+            "GOAL: replace the troops you have lost.\nHOW: stand on the blue pad. Recruits join you automatically, up to the number you lost, from this point's limited reserve. They fill the troop type you lost the most of.\nRESULT: a banner shows how many joined. If your army is full, nothing is used. Recruits arrive without gear.", 4.5f);
+        StationSign(r, 6.5f, 0f, "RALLY POINT: RECRUITS JOIN YOU");
+        RallyPoint rp = r.gameObject.AddComponent<RallyPoint>();
+        rp.reserve = reserve;
+        rp.radius = 3.5f;
+        EditorUtility.SetDirty(rp);
+    }
+
+    private static void BuildRallyPoints()
+    {
+        PlaceRally("Rally_BeforeGate", 14f, -6f, 6);
+        PlaceRally("Rally_AfterGate", 29f, 28f, 6);
+        PlaceRally("Rally_Ruins", -50f, 72f, 8);
     }
 }
