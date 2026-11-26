@@ -8,7 +8,6 @@ public class LevelMessenger : MonoBehaviour
 	private string _text = "";
 	private float _start = -99f;
 	private GUIStyle _style;
-	private Texture2D _bg;
 
 	private void Awake() { Instance = this; }
 
@@ -24,9 +23,6 @@ public class LevelMessenger : MonoBehaviour
 		if (t > Duration || string.IsNullOrEmpty(_text)) return;
 		if (_style == null)
 		{
-			_bg = new Texture2D(1, 1);
-			_bg.SetPixel(0, 0, new Color(0.05f, 0.07f, 0.10f, 0.9f));
-			_bg.Apply();
 			_style = new GUIStyle(GUI.skin.label)
 			{
 				fontSize = 26,
@@ -37,14 +33,22 @@ public class LevelMessenger : MonoBehaviour
 			};
 			_style.normal.textColor = new Color(0.45f, 1f, 0.55f);
 		}
-		float a = Mathf.Clamp01(Mathf.Min(t / 0.25f, (Duration - t) / 0.8f));
+		float inT = Mathf.Clamp01(t / 0.4f);
+		float outT = Mathf.Clamp01((Duration - t) / 0.5f);
+		float a = Mathf.Min(UiEase.Smooth(inT), outT);
+		float s = Mathf.Lerp(0.8f, 1f, UiEase.OutBack(inT)) * Mathf.Lerp(0.95f, 1f, outT);
+		float slide = (1f - UiEase.OutCubic(inT)) * 45f + (1f - outT) * 20f;
+
 		float w = Mathf.Min(Screen.width - 40f, 900f);
 		float h = _style.CalcHeight(new GUIContent(_text), w - 40f) + 28f;
-		Rect r = new Rect((Screen.width - w) * 0.5f, Screen.height * 0.66f, w, h);
+		Rect r = new Rect((Screen.width - w) * 0.5f, Screen.height * 0.66f + slide, w, h);
 		Color old = GUI.color;
+		Matrix4x4 m = GUI.matrix;
 		GUI.color = new Color(1f, 1f, 1f, a);
-		GUI.DrawTexture(r, _bg);
+		GUIUtility.ScaleAroundPivot(Vector2.one * s, r.center);
+		GUI.DrawTexture(r, UiEase.Solid(new Color(0.05f, 0.07f, 0.10f, 0.9f)));
 		GUI.Label(new Rect(r.x + 20f, r.y + 14f, w - 40f, h - 28f), _text, _style);
+		GUI.matrix = m;
 		GUI.color = old;
 	}
 }

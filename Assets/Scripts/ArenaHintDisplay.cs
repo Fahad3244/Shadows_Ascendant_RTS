@@ -12,8 +12,54 @@ public class ArenaHintDisplay : MonoBehaviour
     private const float Pad = 16f;
     private string _lastText;
 
+    private class Anim
+    {
+        public CanvasGroup cg;
+        public RectTransform rt;
+        public Vector2 basePos;
+        public Vector2 offset;
+        public float vis;
+        public bool open;
+
+        public void Init(GameObject g, Vector2 off)
+        {
+            cg = g.GetComponent<CanvasGroup>();
+            if (cg == null) cg = g.AddComponent<CanvasGroup>();
+            cg.blocksRaycasts = false;
+            cg.interactable = false;
+            rt = g.GetComponent<RectTransform>();
+            basePos = rt.anchoredPosition;
+            offset = off;
+            vis = 0f;
+            open = false;
+            if (!g.activeSelf) g.SetActive(true);
+            Apply();
+        }
+
+        public void Tick(float dt)
+        {
+            if (cg == null) return;
+            vis = Mathf.MoveTowards(vis, open ? 1f : 0f, dt / 0.3f);
+            Apply();
+        }
+
+        private void Apply()
+        {
+            float e = open ? UiEase.OutBack(vis) : UiEase.Smooth(vis);
+            cg.alpha = UiEase.Smooth(vis);
+            rt.anchoredPosition = basePos + offset * (1f - e);
+            rt.localScale = Vector3.one * Mathf.Lerp(0.9f, 1f, e);
+        }
+    }
+
+    private Anim _hint = new Anim();
+    private Anim _help = new Anim();
+    private float _startTime;
+    private GUIStyle _chip;
+
     private void Start()
     {
+        _startTime = Time.time;
         StylePanel(panel, label, 700f);
 
         TestArenaHelper helper = GetComponent<TestArenaHelper>();
@@ -26,7 +72,9 @@ public class ArenaHintDisplay : MonoBehaviour
                 helpText.text = HelpText;
                 Resize(helper.helpPanel, helpText, 480f);
             }
+            _help.Init(helper.helpPanel, new Vector2(70f, 0f));
         }
+        if (panel != null) _hint.Init(panel, new Vector2(0f, 40f));
     }
 
     private static void StylePanel(GameObject p, TextMeshProUGUI t, float width)
@@ -56,6 +104,10 @@ public class ArenaHintDisplay : MonoBehaviour
 
     private void Update()
     {
+        if (Input.GetKeyDown(KeyCode.H)) _help.open = !_help.open;
+        _help.Tick(Time.deltaTime);
+        _hint.Tick(Time.deltaTime);
+
         if (player == null || panel == null || label == null) return;
 
         ArenaHintZone best = null;
@@ -67,12 +119,8 @@ public class ArenaHintDisplay : MonoBehaviour
             if (d < bestD) { bestD = d; best = z; }
         }
 
-        if (best == null)
-        {
-            if (panel.activeSelf) panel.SetActive(false);
-            return;
-        }
-        if (!panel.activeSelf) panel.SetActive(true);
+        _hint.open = best != null;
+        if (best == null) return;
 
         string body = best.body
             .Replace("EXPECT:", "<b><color=#66ff88>EXPECT:</color></b>")
@@ -85,6 +133,37 @@ public class ArenaHintDisplay : MonoBehaviour
         _lastText = text;
         label.text = text;
         Resize(panel, label, 700f);
+    }
+
+    // Corner reminder while the controls panel is closed
+    private void OnGUI()
+    {
+        if (_help.open && _help.vis > 0.95f) return;
+        if (_chip == null)
+        {
+            _chip = new GUIStyle(GUI.skin.label) { fontSize = 15, richText = true, alignment = TextAnchor.MiddleCenter };
+            _chip.normal.textColor = Color.white;
+        }
+        float age = Time.time - _startTime;
+        bool big = age < 12f;
+        string t = big ? "Press <b><color=#ffd966>H</color></b> to open the controls" : "<b><color=#ffd966>H</color></b>  Controls";
+        float w = big ? 290f : 120f;
+        float h = 34f;
+
+        float slideIn = UiEase.OutBack((age - 1f) / 0.5f);
+        float hide = 1f - _help.vis;
+        float x = Screen.width - w - 12f + (1f - slideIn) * (w + 20f);
+        float pulse = big ? 1f + 0.03f * Mathf.Sin(Time.time * 4f) : 1f;
+
+        Color old = GUI.color;
+        GUI.color = new Color(1f, 1f, 1f, Mathf.Clamp01(slideIn) * hide);
+        Matrix4x4 m = GUI.matrix;
+        Rect r = new Rect(x, 12f, w, h);
+        GUIUtility.ScaleAroundPivot(Vector2.one * pulse, r.center);
+        GUI.DrawTexture(r, UiEase.Solid(new Color(0.05f, 0.07f, 0.10f, 0.9f)));
+        GUI.Label(r, t, _chip);
+        GUI.matrix = m;
+        GUI.color = old;
     }
 
     private const string HelpText =
@@ -111,5 +190,5 @@ public class ArenaHintDisplay : MonoBehaviour
         "<color=#9ad>N</color> stun enemies   <color=#9ad>U</color> human target aware / unaware\n" +
         "<color=#9ad>E</color> wake enemy   <color=#9ad>M</color> killer   <color=#9ad>B</color> open walls   <color=#9ad>K / L</color> flip waypoint\n\n" +
         "<color=#9ad>Tab</color> station list (level only): <color=#9ad>[ ]</color> choose, <color=#9ad>Enter</color> go\n" +
-        "<color=#9ad>F1</color> Hub   <color=#9ad>F2-F9</color> stations   <color=#9ad>F10</color> level / test arena   <color=#9ad>H</color> hide   <color=#9ad>F12</color> reset";
+        "<color=#9ad>F1</color> Hub   <color=#9ad>F2-F9</color> stations   <color=#9ad>Shift+P</color> level / test arena   <color=#9ad>H</color> hide   <color=#9ad>F12</color> reset";
 }

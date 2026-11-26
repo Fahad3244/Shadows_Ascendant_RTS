@@ -8,7 +8,6 @@ public class CombatDebugPanel : MonoBehaviour
 	private PlayerUnitManager _um;
 	private float _timer;
 	private GUIStyle _text;
-	private Texture2D _bg;
 
 	[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
 	private static void Boot()
@@ -40,9 +39,6 @@ public class CombatDebugPanel : MonoBehaviour
 		if (!CombatDebug.Enabled) return;
 		if (_text == null)
 		{
-			_bg = new Texture2D(1, 1);
-			_bg.SetPixel(0, 0, new Color(0.05f, 0.07f, 0.1f, 0.85f));
-			_bg.Apply();
 			_text = new GUIStyle(GUI.skin.label) { fontSize = 13, richText = true, wordWrap = false };
 			_text.normal.textColor = Color.white;
 		}
@@ -100,7 +96,7 @@ public class CombatDebugPanel : MonoBehaviour
 		float w = 330f;
 		float h = _text.CalcHeight(c, w - 20f) + 16f;
 		Rect r = new Rect(Screen.width - w - 10f, Screen.height - h - 10f, w, h);
-		GUI.DrawTexture(r, _bg);
+		GUI.DrawTexture(r, UiEase.Solid(new Color(0.05f, 0.07f, 0.10f, 0.85f)));
 		GUI.Label(new Rect(r.x + 10f, r.y + 8f, w - 20f, h - 16f), c, _text);
 	}
 }

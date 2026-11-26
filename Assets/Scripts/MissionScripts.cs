@@ -5,13 +5,13 @@ using UnityEngine.SceneManagement;
 // Draws the mission list on the left of the screen
 public class MissionTracker : MonoBehaviour
 {
-	private class Line { public string text; public bool done; }
+	private class Line { public string text; public bool done; public float changedAt = -99f; }
 
 	private static readonly Dictionary<string, Line> Lines = new Dictionary<string, Line>();
 	private static readonly List<string> Order = new List<string>();
 	private static MissionTracker _instance;
 	private GUIStyle _style;
-	private Texture2D _bg;
+	private float _vis;
 
 	[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
 	private static void Boot()
@@ -20,7 +20,11 @@ public class MissionTracker : MonoBehaviour
 		GameObject go = new GameObject("MissionTracker");
 		_instance = go.AddComponent<MissionTracker>();
 		DontDestroyOnLoad(go);
-		SceneManager.sceneLoaded += (s, m) => Clear();
+		SceneManager.sceneLoaded += (s, m) =>
+		{
+			Clear();
+			if (_instance != null) _instance._vis = 0f;
+		};
 	}
 
 	public static void Set(string id, string text, bool done = false)
@@ -31,6 +35,11 @@ public class MissionTracker : MonoBehaviour
 			l = new Line();
 			Lines[id] = l;
 			Order.Add(id);
+			l.changedAt = Time.time;
+		}
+		else if (l.text != text || l.done != done)
+		{
+			l.changedAt = Time.time;
 		}
 		l.text = text;
 		l.done = done;
@@ -42,14 +51,16 @@ public class MissionTracker : MonoBehaviour
 		Order.Clear();
 	}
 
+	private void Update()
+	{
+		_vis = Mathf.MoveTowards(_vis, Order.Count > 0 ? 1f : 0f, Time.deltaTime / 0.4f);
+	}
+
 	private void OnGUI()
 	{
-		if (Order.Count == 0) return;
+		if (_vis <= 0f || Order.Count == 0) return;
 		if (_style == null)
 		{
-			_bg = new Texture2D(1, 1);
-			_bg.SetPixel(0, 0, new Color(0.05f, 0.07f, 0.10f, 0.88f));
-			_bg.Apply();
 			_style = new GUIStyle(GUI.skin.label) { fontSize = 15, richText = true, wordWrap = true };
 			_style.normal.textColor = new Color(0.9f, 0.92f, 0.95f);
 		}
@@ -57,13 +68,20 @@ public class MissionTracker : MonoBehaviour
 		foreach (string id in Order)
 		{
 			Line l = Lines[id];
-			t += l.done ? "<color=#66ff88>[x] " + l.text + "</color>\n" : "[ ] " + l.text + "\n";
+			bool fresh = Time.time - l.changedAt < 2.5f;
+			if (l.done) t += "<color=#66ff88>[x] " + l.text + "</color>\n";
+			else if (fresh) t += "<b><color=#ffd966>[ ] " + l.text + "</color></b>\n";
+			else t += "[ ] " + l.text + "\n";
 		}
 		float w = 360f;
 		float h = _style.CalcHeight(new GUIContent(t), w - 24f) + 20f;
-		Rect r = new Rect(10f, 190f, w, h);
-		GUI.DrawTexture(r, _bg);
+		float x = Mathf.Lerp(-w - 20f, 10f, UiEase.OutCubic(_vis));
+		Rect r = new Rect(x, 190f, w, h);
+		Color old = GUI.color;
+		GUI.color = new Color(1f, 1f, 1f, _vis);
+		GUI.DrawTexture(r, UiEase.Solid(new Color(0.05f, 0.07f, 0.10f, 0.88f)));
 		GUI.Label(new Rect(r.x + 12f, r.y + 10f, w - 24f, h - 20f), t, _style);
+		GUI.color = old;
 	}
 }
 
