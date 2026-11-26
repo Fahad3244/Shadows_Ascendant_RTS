@@ -17,6 +17,8 @@ public static partial class TestArenaBuilder
     private static float _groundY = 0.72f;
     private static EnemyData _dummy, _weak, _brute, _killer, _tank, _hunter;
     private static EnemyData _mini, _boss;
+    private static EnemyData _critter, _critterTest;
+    private static AttachmentSettings _attachCritter;
     private static readonly List<Transform> Spawns = new List<Transform>();
     private static readonly Dictionary<string, Material> Mats = new Dictionary<string, Material>();
     private static readonly Dictionary<int, AttachmentSettings> AttachBySlots = new Dictionary<int, AttachmentSettings>();
@@ -77,9 +79,18 @@ public static partial class TestArenaBuilder
         EditorUtility.SetDirty(_dummy);
         EditorUtility.SetDirty(_tank);
 
+        _critter = MakeEnemyData("EnemyData_Critter", 30f, 0f, 0f, 5f, 1f, 1.5f);
+        _critterTest = MakeEnemyData("EnemyData_CritterTest", 150f, 0f, 0f, 5f, 1f, 1.5f);
+        foreach (EnemyData cd in new[] { _critter, _critterTest })
+        {
+            cd.passive = true;
+            cd.category = EnemyCategory.Critter;
+            EditorUtility.SetDirty(cd);
+        }
+
         EnsureFolder("Assets/TestArena/Settings");
         AttachBySlots.Clear();
-        MakeAttach("Attach_Critter", 1);
+        _attachCritter = MakeAttach("Attach_Critter", 1);
         AttachBySlots[1] = MakeAttach("Attach_Melee", 1);
         AttachBySlots[2] = MakeAttach("Attach_Ranged", 2);
         MakeAttach("Attach_Medic", 2);
@@ -356,6 +367,12 @@ public static partial class TestArenaBuilder
             dl.door = door;
             EditorUtility.SetDirty(dl);
         }
+
+        Lane(st, 75f, "S5-E  CRITTERS",
+            "Press G for labels. Three small creatures wander ahead. They are harmless.\nEXPECT: each has ONE attach point (the number shows 1). Press Z until one is outlined, press 3 (Melee) and TAP twice: the first troop attaches (number 0, label ATTACHED 1/1), the second is a light attacker at half damage (LIGHT 1). The two small critters die in 3 hits (30 health). The third has 150 health, raised for this test only so you have time to watch.");
+        AddCritter(st, "S5E_CritterA", 70f, 4f, _critter);
+        AddCritter(st, "S5E_CritterB", 76f, 8f, _critter);
+        AddCritter(st, "S5E_CritterTest", 82f, 4f, _critterTest);
     }
 
     private static void BuildS6()
@@ -635,6 +652,21 @@ public static partial class TestArenaBuilder
         Set<AttachableTarget>(e, "frontRadius", front);
         Set<AttachableTarget>(e, "uiOffset", new Vector3(0f, uiHeight, 0f));
         Set<AttachableTarget>(e, "maxFrontAttackers", 6);
+        return e;
+    }
+
+    private static GameObject AddCritter(Transform st, string name, float x, float z, EnemyData data)
+    {
+        GameObject e = AddEnemy(st, name, x, z, data, 1);
+        if (e == null) return null;
+        e.transform.localScale = Vector3.one * 0.5f;
+        Set<AttachableTarget>(e, "settings", _attachCritter);
+        Set<AttachableTarget>(e, "attachRadius", 1.0f);
+        Set<AttachableTarget>(e, "frontRadius", 1.8f);
+        Set<AttachableTarget>(e, "uiOffset", new Vector3(0f, 1.6f, 0f));
+        Set<AttachableTarget>(e, "maxFrontAttackers", 3);
+        Set<EnemyBase>(e, "canShakeOff", false);
+        Set<EnemyBase>(e, "ignorePlayer", true);
         return e;
     }
 

@@ -25,3 +25,5 @@ MonoBehaviour:
   heavyAttack: 1
   heavyInterrupt: 0.8
   heavyKnockback: 2
+  category: 0
+  attackWindUp: 0.4

@@ -2,5 +2,6 @@ public enum EnemyCategory
 {
 	Standard,
 	Miniboss,
-	Boss
+	Boss,
+	Critter
 }

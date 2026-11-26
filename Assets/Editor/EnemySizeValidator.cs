@@ -52,6 +52,12 @@ public static class EnemySizeValidator
 				if (cap != 6) problems.Add("boss should have 6 points");
 				if (playerH > 0f && h < playerH * 1.8f) problems.Add("boss is not clearly larger than a miniboss");
 			}
+			if (d.category == EnemyCategory.Critter)
+			{
+				if (cap != 1) problems.Add("critter should have 1 point");
+				// the sturdy test critter (name ends with 'Test') is allowed to exceed this
+				if (d.maxHP > 60f && !e.name.EndsWith("Test")) problems.Add("critter health should be lower than a Melee troop (60)");
+			}
 			if (d.category == EnemyCategory.Standard && !d.passive && d.maxHP > maxStandardHp) maxStandardHp = d.maxHP;
 			if (d.category != EnemyCategory.Standard && !d.passive) bigLines.Add(e.name + ":" + d.maxHP + ":" + d.category);
 
