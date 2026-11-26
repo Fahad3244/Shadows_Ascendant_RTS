@@ -101,6 +101,8 @@ public class EnemyBase : MonoBehaviour
 	private float _telegraphTimer = -1f;
 	private float _stunnedUntil;
 	private bool _wasStunned;
+	private float _interruptedUntil;
+	private bool _wasInterrupted;
 	private Renderer[] _renderers;
 	private MaterialPropertyBlock _mpb;
 
@@ -130,6 +132,12 @@ public class EnemyBase : MonoBehaviour
 	{
 		if (currentState == EnemyState.Dead) return;
 		if (IsStunned) return;
+		if (IsInterrupted) return;
+		if (_wasInterrupted)
+		{
+			_wasInterrupted = false;
+			if (_navAgent.isOnNavMesh) _navAgent.isStopped = false;
+		}
 		if (_wasStunned)
 		{
 			_wasStunned = false;
@@ -227,6 +235,8 @@ public class EnemyBase : MonoBehaviour
 
 	private void HandleDamaged(DamageInfo info)
 	{
+		// Only a true Heavy hit staggers. Light never does, and Attachment never does (it hits every second).
+		if (info.attackType == AttackType.Heavy && info.interruptSeconds > 0f) Interrupt(info.interruptSeconds);
 		if (info.attackerReference == null) return;
 		_lastAttacker = info.attackerReference;
 		if (alertAfterHit > 0f && currentState == EnemyState.Idle && _alertAt < 0f)
@@ -349,6 +359,21 @@ public class EnemyBase : MonoBehaviour
 	}
 
 	public bool IsStunned => Time.time < _stunnedUntil;
+	public bool IsInterrupted => Time.time < _interruptedUntil;
+
+	public void Interrupt(float seconds)
+	{
+		if (currentState == EnemyState.Dead || IsStunned) return;
+		_interruptedUntil = Mathf.Max(_interruptedUntil, Time.time + seconds);
+		_wasInterrupted = true;
+		_attackTimer = 0f;
+		_telegraphTimer = -1f;
+		_attachedTimer = 0f;
+		EndGlow();
+		if (_navAgent.isOnNavMesh) _navAgent.isStopped = true;
+		if (CombatDebug.Enabled) Debug.Log($"[Interrupt] {name} staggered for {seconds}s");
+	}
+
 	public float StunRemaining => Mathf.Max(0f, _stunnedUntil - Time.time);
 	public int AttachedCount => _myAttachableSelf != null ? _myAttachableSelf.GetAllAttachedUnits().Count : 0;
 	public int FrontCount => _myAttachableSelf != null ? _myAttachableSelf.FrontCount : 0;
@@ -574,6 +599,14 @@ public class EnemyBase : MonoBehaviour
 			type = DamageType.Normal,
 			attackType = (onPlayer && !attached) ? AttackType.Light : (onPlayer ? AttackType.Attachment : AttackType.Light)
 		};
+		if (enemyData.heavyAttack && component3 != null)
+		{
+			Vector3 hd = component3.transform.position - transform.position;
+			hd.y = 0f;
+			if (hd.sqrMagnitude < 0.01f) hd = transform.forward;
+			component3.GetThrown(hd.normalized, info.amount, enemyData.heavyKnockback, enemyData.heavyInterrupt, transform);
+			return;
+		}
 		component.TakeDamage(info);
 	}
 

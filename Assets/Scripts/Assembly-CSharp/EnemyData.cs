@@ -26,4 +26,10 @@ public class EnemyData : ScriptableObject
 
 	[Tooltip("Never reacts to anyone. Used for test dummies.")]
 	public bool passive;
+
+	[Header("Heavy Attack")]
+	[Tooltip("If true, this enemy's hits on troops are heavy: they knock the troop back and stun it briefly.")]
+	public bool heavyAttack;
+	public float heavyInterrupt = 0.8f;
+	public float heavyKnockback = 2f;
 }

@@ -22,3 +22,6 @@ MonoBehaviour:
   aggroRange: 12
   patrolRadius: 1
   passive: 0
+  heavyAttack: 0
+  heavyInterrupt: 0.8
+  heavyKnockback: 2

@@ -50,7 +50,7 @@ public class EnemyDebugLabel : MonoBehaviour
 
 			AttackDirection dir = e.GetAttackDirection(_player.position);
 			Color c = dir == AttackDirection.Front ? Color.red : (dir == AttackDirection.Back ? Color.green : Color.yellow);
-			string text = (e.IsAware ? "AWARE" : "UNAWARE") + (e.IsStunned ? " | STUNNED" : "") + " | " + dir.ToString().ToUpper();
+			string text = (e.IsAware ? "AWARE" : "UNAWARE") + (e.IsStunned ? " | STUNNED" : "") + (e.IsInterrupted ? " | INTERRUPTED" : "") + " | " + dir.ToString().ToUpper();
 			text += "\nATTACHED " + e.AttachedCount + "/" + e.Capacity + " | LIGHT " + e.FrontCount;
 			if (e.LastDefense != "" && Time.time - e.LastDefenseTime < 4f) text += "\n" + e.LastDefense;
 

@@ -30,6 +30,31 @@ public class TestArenaHelper : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.N))
             foreach (EnemyBase e in FindObjectsOfType<EnemyBase>()) e.Stun(5f);
 
+        // Test keys: J = heavy hit on the nearest enemy (staggers), I = light hit (never staggers)
+        if ((Input.GetKeyDown(KeyCode.J) || Input.GetKeyDown(KeyCode.I)) && player != null)
+        {
+            bool heavy = Input.GetKeyDown(KeyCode.J);
+            EnemyBase best = null;
+            float bd = 25f;
+            foreach (EnemyBase e in FindObjectsOfType<EnemyBase>())
+            {
+                float d = Vector3.Distance(e.transform.position, player.position);
+                if (d < bd) { bd = d; best = e; }
+            }
+            Health h = best != null ? best.GetComponent<Health>() : null;
+            if (h != null)
+            {
+                h.TakeDamage(new DamageInfo
+                {
+                    amount = 1f,
+                    attackerReference = player,
+                    type = DamageType.Normal,
+                    attackType = heavy ? AttackType.Heavy : AttackType.Light,
+                    interruptSeconds = heavy ? 1.5f : 0f
+                });
+            }
+        }
+
         HandleMenu();
         _vis = Mathf.MoveTowards(_vis, _menu ? 1f : 0f, Time.deltaTime / 0.2f);
     }

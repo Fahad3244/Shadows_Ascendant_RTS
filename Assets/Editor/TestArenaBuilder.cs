@@ -257,6 +257,19 @@ public static partial class TestArenaBuilder
             AddEnemy(st, "S3F_EnemyC", 94f, 4f, _weak, 3)
         })
             if (cap != null) Set<EnemyBase>(cap, "ignorePlayer", true);
+
+        EnemyData slammer = MakeEnemyData("EnemyData_Slammer", 400f, 15f, 10f, 1f, 1.5f, 3.5f);
+        slammer.heavyAttack = true;
+        slammer.heavyInterrupt = 0.8f;
+        slammer.heavyKnockback = 2f;
+        EditorUtility.SetDirty(slammer);
+
+        Lane(st, -90f, "S3-G  LIGHT vs HEAVY",
+            "Press G for labels. Stand next to the left enemy (the hunter) and press I (light hit): nothing happens. Press J (heavy hit): its label shows INTERRUPTED for 1.5 seconds and it freezes.\nEXPECT: ranged troops (press 2) hit it with light attacks and never interrupt it. The right enemy (the slammer) hits troops with HEAVY attacks: a troop is knocked back and stunned (gray ball), not just damaged. Melee troops attached to a target deal attachment damage every second, which never interrupts.");
+        GameObject lightTarget = AddEnemy(st, "S3G_Hunter", -94f, 6f, _hunter, 3);
+        GameObject heavyHitter = AddEnemy(st, "S3G_Slammer", -86f, 6f, slammer, 3);
+        foreach (GameObject g3 in new[] { lightTarget, heavyHitter })
+            if (g3 != null) Set<EnemyBase>(g3, "ignorePlayer", true);
     }
 
     private static void BuildS4()

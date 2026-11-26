@@ -18,6 +18,9 @@ public class Health : MonoBehaviour
 
 	public event Action<float, float> OnHealthChanged;
 
+	// Fires for every heavy or attachment hit. Overthrow will subscribe to this in Phase 2.
+	public event Action<DamageInfo> OnHeavyHit;
+
 	public void Initialize(float maxHP)
 	{
 		MaxHP = maxHP;
@@ -34,6 +37,7 @@ public class Health : MonoBehaviour
 				Debug.Log($"[Damage] {info.attackerReference?.name} -> {name}: {info.amount} ({info.attackType}, heavy={info.IsHeavy})");
 			CurrentHP -= info.amount;
 			this.OnDamaged?.Invoke(info);
+			if (info.IsHeavy) OnHeavyHit?.Invoke(info);
 			OnHealthChanged?.Invoke(CurrentHP, MaxHP);
 			if (CurrentHP <= 0f)
 			{
