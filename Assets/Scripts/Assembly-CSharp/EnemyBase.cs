@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -66,6 +67,20 @@ public class EnemyBase : MonoBehaviour
 	[Tooltip("1 = full knockback. Larger enemies use a smaller value.")]
 	[SerializeField] private float knockbackMultiplier = 1f;
 
+	[Header("Wind-up Telegraph")]
+	[SerializeField] private Color windUpColor = new Color(1f, 0.45f, 0.2f);
+	[SerializeField] private float windUpGrow = 0.12f;
+
+	private bool _windingUp;
+	private float _windStart;
+	private float _windLen;
+	private float _windRingY;
+	private Vector3 _baseScale = Vector3.one;
+	private GameObject _windRing;
+	private Material _windMat;
+	private Animator _anim;
+	private readonly HashSet<string> _animParams = new HashSet<string>();
+
 	[Header("Test")]
 	[Tooltip("Test lanes only: enemy never targets the player, only troops.")]
 	[SerializeField] private bool ignorePlayer;
@@ -130,6 +145,10 @@ public class EnemyBase : MonoBehaviour
 		}
 		_health.OnDeath.AddListener(Die);
 		_health.OnDamaged += HandleDamaged;
+		_baseScale = transform.localScale;
+		_anim = GetComponentInChildren<Animator>();
+		if (_anim != null && _anim.runtimeAnimatorController != null)
+			foreach (AnimatorControllerParameter p in _anim.parameters) _animParams.Add(p.name);
 	}
 
 	private void Update()
@@ -149,6 +168,8 @@ public class EnemyBase : MonoBehaviour
 			_attachedTimer = 0f;
 			if (CombatDebug.Enabled) Debug.Log($"[Stun] {name} recovered (attached={AttachedCount})");
 		}
+		UpdateWindUp();
+		UpdateAnimSpeed();
 		HandleStateMachine();
 		HandleShakeOff();
 	}
@@ -239,6 +260,7 @@ public class EnemyBase : MonoBehaviour
 
 	private void HandleDamaged(DamageInfo info)
 	{
+		AnimTrigger("Hit");
 		// Only a true Heavy hit staggers. Light never does, and Attachment never does (it hits every second).
 		if (info.attackType == AttackType.Heavy && info.interruptSeconds > 0f) Interrupt(info.interruptSeconds);
 		if (info.attackerReference == null) return;
@@ -339,9 +361,12 @@ public class EnemyBase : MonoBehaviour
 			base.transform.rotation = Quaternion.Slerp(base.transform.rotation, Quaternion.LookRotation(normalized), 10f * Time.deltaTime);
 		}
 		_attackTimer += Time.deltaTime;
+		float wu = WindUpTime;
+		if (_attackTimer > enemyData.attackInterval - wu) BeginWindUp(wu);
 		if (_attackTimer > enemyData.attackInterval)
 		{
 			_attackTimer = 0f;
+			EndWindUp();
 			PerformAttack();
 		}
 	}
@@ -349,6 +374,7 @@ public class EnemyBase : MonoBehaviour
 	private void TransitionToState(EnemyState newState)
 	{
 		currentState = newState;
+		if (newState != EnemyState.Attacking) EndWindUp();
 		if (newState == EnemyState.Attacking)
 		{
 			_attackTimer = enemyData.attackInterval * firstStrikeCharge;
@@ -372,10 +398,92 @@ public class EnemyBase : MonoBehaviour
 		_wasInterrupted = true;
 		_attackTimer = 0f;
 		_telegraphTimer = -1f;
+		EndWindUp();
+		AnimTrigger("Interrupt");
 		_attachedTimer = 0f;
 		EndGlow();
 		if (_navAgent.isOnNavMesh) _navAgent.isStopped = true;
 		if (CombatDebug.Enabled) Debug.Log($"[Interrupt] {name} staggered for {seconds}s");
+	}
+
+	private void AnimTrigger(string n)
+	{
+		if (_anim != null && _animParams.Contains(n)) _anim.SetTrigger(n);
+	}
+
+	private void AnimBool(string n, bool v)
+	{
+		if (_anim != null && _animParams.Contains(n)) _anim.SetBool(n, v);
+	}
+
+	private void UpdateAnimSpeed()
+	{
+		if (_anim != null && _animParams.Contains("Speed") && _navAgent != null)
+			_anim.SetFloat("Speed", _navAgent.velocity.magnitude);
+	}
+
+	private float WindUpTime
+	{
+		get
+		{
+			if (enemyData == null) return 0f;
+			float w = enemyData.attackWindUp;
+			if (enemyData.heavyAttack) w *= 1.3f;
+			if (enemyData.category == EnemyCategory.Miniboss) w *= 1.3f;
+			else if (enemyData.category == EnemyCategory.Boss) w *= 1.6f;
+			return Mathf.Min(w, enemyData.attackInterval * 0.5f);
+		}
+	}
+
+	private void BeginWindUp(float len)
+	{
+		if (_windingUp || len <= 0f) return;
+		_windingUp = true;
+		_windStart = Time.time;
+		_windLen = len;
+		AnimTrigger("Attack");
+		AnimBool("WindUp", true);
+		if (enemyData.category == EnemyCategory.Standard) return;
+
+		float gy = transform.position.y;
+		bool found = false;
+		foreach (RaycastHit h in Physics.RaycastAll(transform.position + Vector3.up * 5f, Vector3.down, 12f, ~0, QueryTriggerInteraction.Ignore))
+		{
+			if (h.collider.transform.IsChildOf(transform)) continue;
+			if (!found || h.point.y < gy) { gy = h.point.y; found = true; }
+		}
+		_windRingY = gy + 0.1f;
+		_windRing = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+		Collider c = _windRing.GetComponent<Collider>();
+		if (c != null) Destroy(c);
+		_windMat = new Material(Shader.Find("Sprites/Default"));
+		_windRing.GetComponent<Renderer>().material = _windMat;
+	}
+
+	private void UpdateWindUp()
+	{
+		if (!_windingUp) return;
+		float t = Mathf.Clamp01((Time.time - _windStart) / Mathf.Max(0.01f, _windLen));
+		transform.localScale = _baseScale * (1f + windUpGrow * Mathf.Sin(t * Mathf.PI * 0.5f));
+		if (_telegraphTimer < 0f) SetGlow(Color.Lerp(Color.white, windUpColor, t));
+		if (_windRing != null)
+		{
+			float d = (enemyData.attackRange + 1f) * 2f;
+			_windRing.transform.position = new Vector3(transform.position.x, _windRingY, transform.position.z);
+			_windRing.transform.localScale = new Vector3(d, 0.02f, d);
+			_windMat.color = new Color(1f, 0.25f, 0.1f, Mathf.Lerp(0.1f, 0.5f, t));
+		}
+	}
+
+	private void EndWindUp()
+	{
+		if (!_windingUp) return;
+		_windingUp = false;
+		transform.localScale = _baseScale;
+		if (_telegraphTimer < 0f) EndGlow();
+		AnimBool("WindUp", false);
+		if (_windRing != null) { Destroy(_windRing); _windRing = null; }
+		if (_windMat != null) { Destroy(_windMat); _windMat = null; }
 	}
 
 	public void Knockback(Vector3 dir, float distance)
@@ -469,6 +577,8 @@ public class EnemyBase : MonoBehaviour
 		_stunnedUntil = Mathf.Max(_stunnedUntil, Time.time + seconds);
 		_wasStunned = true;
 		_telegraphTimer = -1f;
+		EndWindUp();
+		AnimTrigger("Stun");
 		EndGlow();
 		if (_navAgent.isOnNavMesh) _navAgent.isStopped = true;
 		if (!already && CombatDebug.Enabled) Debug.Log($"[Stun] {name} stunned for {seconds}s (attached={AttachedCount})");
@@ -649,6 +759,8 @@ public class EnemyBase : MonoBehaviour
 
 	private void Die()
 	{
+		EndWindUp();
+		AnimTrigger("Die");
 		ReleaseTroop();
 		ReleasePoint();
 		currentState = EnemyState.Dead;
@@ -663,6 +775,7 @@ public class EnemyBase : MonoBehaviour
 
 	private void OnDestroy()
 	{
+		if (_windRing != null) Destroy(_windRing);
 		ReleaseTroop();
 		ReleasePoint();
 		_health.OnDeath.RemoveListener(Die);

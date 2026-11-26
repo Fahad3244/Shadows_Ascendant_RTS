@@ -68,6 +68,8 @@ public static partial class TestArenaBuilder
         _boss = MakeEnemyData("EnemyData_Boss", 3000f, 60f, 12f, 1f, 1.5f, 3.5f);
         _mini.attackRange = 4f;
         _boss.attackRange = 5f;
+        _mini.category = EnemyCategory.Miniboss;
+        _boss.category = EnemyCategory.Boss;
         EditorUtility.SetDirty(_mini);
         EditorUtility.SetDirty(_boss);
         _dummy.passive = true;
@@ -528,6 +530,22 @@ public static partial class TestArenaBuilder
             "Press ` (all troops), then press Q to leave them at the guard flag.\nWith 4 or fewer troops still with you, TURRET MODE appears at the bottom. Press R: nearby enemies are INTERRUPTED and knocked back. Cooldown 12s.");
         GameObject roarTarget = AddEnemy(st, "S8K_RoarTarget", 117f, -2f, _dummy, 3);
         if (roarTarget != null) Set<EnemyBase>(roarTarget, "ignorePlayer", true);
+
+        EnemyData lineMini = MakeEnemyData("EnemyData_LineupMini", 1500f, 0f, 0.5f, 0f, 1.5f, 1f);
+        EnemyData lineBoss = MakeEnemyData("EnemyData_LineupBoss", 3000f, 0f, 0.5f, 0f, 1.5f, 1f);
+        lineMini.passive = true;
+        lineBoss.passive = true;
+        lineMini.category = EnemyCategory.Miniboss;
+        lineBoss.category = EnemyCategory.Boss;
+        EditorUtility.SetDirty(lineMini);
+        EditorUtility.SetDirty(lineBoss);
+
+        Lane(st, -63f, "S8-L  SIZE LINEUP",
+            "Walk north (+Z) about 20 units: four enemies stand in a row, smallest to largest. They are passive, so you can look closely.\nEXPECT: size, health and attach points grow together. Press Z on each one: the counter shows 3, 4, 5, 6. Press G to see their health (600, 600, 1500, 3000). The miniboss is clearly bigger than you, and the boss is bigger again.\nTo see the attack wind-up (enemy grows, tints orange, red disc on the ground), fight the miniboss at S8-H or the boss at S8-I.");
+        AddEnemy(st, "S8L_Standard3", -80f, 8f, _dummy, 3);
+        AddEnemy(st, "S8L_Standard4", -72f, 8f, _dummy, 4);
+        AddBigEnemy(st, "S8L_Miniboss", -62f, 8f, lineMini, 5, 1.6f, 2.6f, 3.8f, 5f);
+        AddBigEnemy(st, "S8L_Boss", -49f, 8f, lineBoss, 6, 2.2f, 3.4f, 4.8f, 6.5f);
     }
 
     // ---------------------------------------------------------------- builders

@@ -32,4 +32,9 @@ public class EnemyData : ScriptableObject
 	public bool heavyAttack;
 	public float heavyInterrupt = 0.8f;
 	public float heavyKnockback = 2f;
+
+	[Header("Size / Readability")]
+	public EnemyCategory category = EnemyCategory.Standard;
+	[Tooltip("Seconds of visible wind-up before each attack lands (scaled up for heavy attackers, minibosses and bosses).")]
+	public float attackWindUp = 0.4f;
 }
