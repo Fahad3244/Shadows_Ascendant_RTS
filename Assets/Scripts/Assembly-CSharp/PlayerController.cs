@@ -19,6 +19,8 @@ public class PlayerController : MonoBehaviour
 
 	public float gravity = -20f;
 
+	public bool IsTurretMode => _currentStrategy == _turretMode;
+
 	[Header("Visuals")]
 	[Tooltip("The root GameObject for the standard walking visual.")]
 	[SerializeField]

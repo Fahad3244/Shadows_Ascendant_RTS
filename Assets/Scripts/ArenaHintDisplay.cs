@@ -180,6 +180,7 @@ public class ArenaHintDisplay : MonoBehaviour
         "<color=#9ad>LEFT + RIGHT</color> sweep (steer troops)\n" +
         "<color=#9ad>Z</color> target nearest / next   <color=#9ad>X</color> clear\n" +
         "<color=#9ad>Q</color> guard flag\n" +
+        "<color=#9ad>R</color> roar (Turret Mode only)\n" +
         "<color=#9ad>Ctrl</color> hold = plan route, release = save, tap = run\n\n" +
         "<b><color=#ffd966>READING THE WORLD</color></b>\n" +
         "Number on an enemy = free attach points\n" +

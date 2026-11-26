@@ -523,6 +523,11 @@ public static partial class TestArenaBuilder
         GameObject combo = AddEnemy(st, "S8J_Hunter", 99f, -2f, _hunter, 4);
         if (combo != null) Set<EnemyBase>(combo, "ignorePlayer", true);
         if (combo != null) combo.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+
+        Lane(st, 117f, "S8-K  TURRET ROAR",
+            "Press ` (all troops), then press Q to leave them at the guard flag.\nWith 4 or fewer troops still with you, TURRET MODE appears at the bottom. Press R: nearby enemies are INTERRUPTED and knocked back. Cooldown 12s.");
+        GameObject roarTarget = AddEnemy(st, "S8K_RoarTarget", 117f, -2f, _dummy, 3);
+        if (roarTarget != null) Set<EnemyBase>(roarTarget, "ignorePlayer", true);
     }
 
     // ---------------------------------------------------------------- builders
@@ -607,6 +612,7 @@ public static partial class TestArenaBuilder
         GameObject e = AddEnemy(st, name, x, z, data, slots);
         if (e == null) return null;
         e.transform.localScale = Vector3.one * scale;
+        Set<EnemyBase>(e, "knockbackMultiplier", scale >= 2f ? 0.25f : 0.5f);
         Set<AttachableTarget>(e, "attachRadius", ring);
         Set<AttachableTarget>(e, "frontRadius", front);
         Set<AttachableTarget>(e, "uiOffset", new Vector3(0f, uiHeight, 0f));

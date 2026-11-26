@@ -62,6 +62,10 @@ public class EnemyBase : MonoBehaviour
 	[SerializeField] private float alertAfterHit = 0f;
 	private float _alertAt = -1f;
 
+	[Header("Knockback")]
+	[Tooltip("1 = full knockback. Larger enemies use a smaller value.")]
+	[SerializeField] private float knockbackMultiplier = 1f;
+
 	[Header("Test")]
 	[Tooltip("Test lanes only: enemy never targets the player, only troops.")]
 	[SerializeField] private bool ignorePlayer;
@@ -372,6 +376,25 @@ public class EnemyBase : MonoBehaviour
 		EndGlow();
 		if (_navAgent.isOnNavMesh) _navAgent.isStopped = true;
 		if (CombatDebug.Enabled) Debug.Log($"[Interrupt] {name} staggered for {seconds}s");
+	}
+
+	public void Knockback(Vector3 dir, float distance)
+	{
+		if (currentState == EnemyState.Dead) return;
+		ReleasePoint();
+		StartCoroutine(KnockbackRoutine(dir.normalized, distance * knockbackMultiplier));
+	}
+
+	private System.Collections.IEnumerator KnockbackRoutine(Vector3 dir, float distance)
+	{
+		float left = distance;
+		while (left > 0f && currentState != EnemyState.Dead)
+		{
+			float step = Mathf.Min(14f * Time.deltaTime, left);
+			if (_navAgent != null && _navAgent.isOnNavMesh) _navAgent.Move(dir * step);
+			left -= step;
+			yield return null;
+		}
 	}
 
 	public float StunRemaining => Mathf.Max(0f, _stunnedUntil - Time.time);
