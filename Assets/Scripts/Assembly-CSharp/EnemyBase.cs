@@ -55,6 +55,7 @@ public class EnemyBase : MonoBehaviour
 	[Tooltip("Damage multiplier when the player has no free attach point.")]
 	[SerializeField] private float unattachedDamageMultiplier = 0.5f;
 	private int _pointIndex = -1;
+	private UnitAgent _reservedTroop;
 
 	[Header("Stealth")]
 	[Tooltip("0 = off. After being hit while unaware, the enemy turns on its attacker after this many seconds.")]
@@ -161,9 +162,8 @@ public class EnemyBase : MonoBehaviour
 		if (_alertAt >= 0f && Time.time >= _alertAt)
 		{
 			_alertAt = -1f;
-			if (_lastAttacker != null && IsTargetStillValid(_lastAttacker))
+			if (_lastAttacker != null && IsTargetStillValid(_lastAttacker) && AssignTarget(_lastAttacker))
 			{
-				_currentTarget = _lastAttacker;
 				TransitionToState(EnemyState.Chasing);
 				return;
 			}
@@ -186,6 +186,23 @@ public class EnemyBase : MonoBehaviour
 		}
 	}
 
+	private bool AssignTarget(Transform t)
+	{
+		UnitAgent troop = t != null ? t.GetComponent<UnitAgent>() : null;
+		if (troop != null && troop != _reservedTroop && !troop.TryReserveAttacker(this)) return false;
+		if (_reservedTroop != null && _reservedTroop != troop) _reservedTroop.ReleaseAttacker(this);
+		_reservedTroop = troop;
+		ReleasePoint();
+		_currentTarget = t;
+		return true;
+	}
+
+	private void ReleaseTroop()
+	{
+		if (_reservedTroop != null) _reservedTroop.ReleaseAttacker(this);
+		_reservedTroop = null;
+	}
+
 	private void HandleTargetScan()
 	{
 		if (enemyData.passive) return;
@@ -200,10 +217,9 @@ public class EnemyBase : MonoBehaviour
 		{
 			bool current = _currentTarget != null && IsTargetStillValid(_currentTarget);
 			if (current && Time.time - _lastRetargetTime < retargetCooldown) return;
+			if (!AssignTarget(best)) return;
 			_lastRetargetTime = Time.time;
-			Debug.Log("[Enemy] " + name + " target -> " + best.name);
-			_currentTarget = best;
-			ReleasePoint();
+			if (CombatDebug.Enabled) Debug.Log("[Enemy] " + name + " target -> " + best.name);
 			if (currentState == EnemyState.Attacking) TransitionToState(EnemyState.Chasing);
 		}
 		if (currentState == EnemyState.Idle) TransitionToState(EnemyState.Chasing);
@@ -327,12 +343,16 @@ public class EnemyBase : MonoBehaviour
 		{
 			_navAgent.isStopped = false;
 			ReleasePoint();
+			ReleaseTroop();
+			_currentTarget = null;
 		}
 	}
 
 	public bool IsStunned => Time.time < _stunnedUntil;
 	public float StunRemaining => Mathf.Max(0f, _stunnedUntil - Time.time);
 	public int AttachedCount => _myAttachableSelf != null ? _myAttachableSelf.GetAllAttachedUnits().Count : 0;
+	public int FrontCount => _myAttachableSelf != null ? _myAttachableSelf.FrontCount : 0;
+	public int Capacity => _myAttachableSelf != null ? _myAttachableSelf.MaxSlots : 0;
 	public bool CanStartOverthrow => currentState != EnemyState.Dead && !IsStunned;
 
 	public string OverthrowTimerState
@@ -477,7 +497,7 @@ public class EnemyBase : MonoBehaviour
 		if (alertAfterHit <= 0f && _myAttachableSelf.AttachedUnitCount > 0)
 		{
 			UnitAgent priorityAttachedUnit = _myAttachableSelf.GetPriorityAttachedUnit();
-			if (priorityAttachedUnit != null)
+			if (priorityAttachedUnit != null && priorityAttachedUnit.CanBeAttackedBy(this))
 			{
 				return priorityAttachedUnit.transform;
 			}
@@ -491,7 +511,7 @@ public class EnemyBase : MonoBehaviour
 			if (num2 < num - 0.5f || (Mathf.Abs(num2 - num) <= 0.5f && collider2.transform == _lastAttacker))
 			{
 				UnitAgent component = collider2.GetComponent<UnitAgent>();
-				if (!(component == null) && component.CurrentStateEnum != UnitState.Dead)
+				if (!(component == null) && component.CurrentStateEnum != UnitState.Dead && component.CanBeAttackedBy(this))
 				{
 					num = num2;
 					collider = collider2;
@@ -534,6 +554,7 @@ public class EnemyBase : MonoBehaviour
 		TargetTeam targetTeam = ((component2 != null) ? component2.Team : TargetTeam.Friendly);
 		if (!CombatValidation.IsValidTarget(component, TargetTeam.Enemy, targetTeam))
 		{
+			ReleaseTroop();
 			_currentTarget = null;
 			return;
 		}
@@ -572,6 +593,7 @@ public class EnemyBase : MonoBehaviour
 
 	private void Die()
 	{
+		ReleaseTroop();
 		ReleasePoint();
 		currentState = EnemyState.Dead;
 		_navAgent.isStopped = true;
@@ -585,6 +607,7 @@ public class EnemyBase : MonoBehaviour
 
 	private void OnDestroy()
 	{
+		ReleaseTroop();
 		ReleasePoint();
 		_health.OnDeath.RemoveListener(Die);
 		_health.OnDamaged -= HandleDamaged;

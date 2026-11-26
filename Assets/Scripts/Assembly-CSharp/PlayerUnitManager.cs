@@ -15,6 +15,24 @@ public class PlayerUnitManager : MonoBehaviour
 	[SerializeField] private int medicHealth = 100;
 	[SerializeField] private int builderHealth = 140;
 
+	[Header("Troop Attack Capacity (enemies that can attack one troop at once)")]
+	[SerializeField] private int meleeSlots = 1;
+	[SerializeField] private int rangedSlots = 2;
+	[SerializeField] private int medicSlots = 2;
+	[SerializeField] private int builderSlots = 3;
+
+	public int SlotsFor(UnitType type)
+	{
+		switch (type)
+		{
+			case UnitType.Melee: return meleeSlots;
+			case UnitType.Ranged: return rangedSlots;
+			case UnitType.Medic: return medicSlots;
+			case UnitType.Builder: return builderSlots;
+			default: return 1;
+		}
+	}
+
 	private Dictionary<UnitType, Stack<Unit>> _freeUnits = new Dictionary<UnitType, Stack<Unit>>();
 
 	private List<Unit> _allUnits = new List<Unit>();

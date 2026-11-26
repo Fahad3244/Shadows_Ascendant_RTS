@@ -483,12 +483,19 @@ public class AttachableTarget : MonoBehaviour
 		}
 		if (isFront)
 		{
-			LogAttach($"ATTACHED front {agent.name}{DescribeEnemy(agent)}");
+			LogAttach($"LIGHT ATTACKER (not attached) {agent.name}{DescribeEnemy(agent)}");
 			agent.OnAttachedToTarget(this);
 			return;
 		}
 		if (_incomingUnits.Contains(agent))
 		{
+			if (!_unlimitedSlots && _attachedUnits.Count >= maxAttachSlots)
+			{
+				Debug.LogWarning($"[Attach] CAPACITY GUARD: {name} is full ({maxAttachSlots}), refusing {agent.name}");
+				CancelReservation(agent);
+				agent.ReturnToPlayer();
+				return;
+			}
 			_incomingUnits.Remove(agent);
 			_attachedUnits.Add(agent);
 			AssignSlot(agent);
@@ -678,11 +685,10 @@ public class AttachableTarget : MonoBehaviour
 		}
 	}
 
+	// Ring-attached troops only. Front attackers are light attackers and do not count as attached.
 	public List<UnitAgent> GetAllAttachedUnits()
 	{
-		List<UnitAgent> all = new List<UnitAgent>(_attachedUnits);
-		all.AddRange(_frontUnits);
-		return all;
+		return new List<UnitAgent>(_attachedUnits);
 	}
 
 	public void RegisterDamage()

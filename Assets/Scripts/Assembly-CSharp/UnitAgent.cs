@@ -81,6 +81,37 @@ public class UnitAgent : MonoBehaviour
 
 	public PickupItem CarriedPickup { get; set; }
 
+	private readonly HashSet<EnemyBase> _attackers = new HashSet<EnemyBase>();
+
+	public int AttackerCapacity => Manager != null ? Manager.SlotsFor(Type) : 1;
+
+	public int AttackerCount
+	{
+		get
+		{
+			_attackers.RemoveWhere(e => e == null);
+			return _attackers.Count;
+		}
+	}
+
+	public bool CanBeAttackedBy(EnemyBase e)
+	{
+		return _attackers.Contains(e) || AttackerCount < AttackerCapacity;
+	}
+
+	public bool TryReserveAttacker(EnemyBase e)
+	{
+		if (_attackers.Contains(e)) return true;
+		if (AttackerCount >= AttackerCapacity) return false;
+		_attackers.Add(e);
+		return true;
+	}
+
+	public void ReleaseAttacker(EnemyBase e)
+	{
+		_attackers.Remove(e);
+	}
+
 	public bool IsReturning => CurrentStateEnum == UnitState.Returning;
 
 	public float ScanSuppressedUntil { get; private set; }
@@ -136,6 +167,7 @@ public class UnitAgent : MonoBehaviour
 
 	public void Initialize(Unit data, UnitType type, PlayerUnitManager manager, UnitPool pool, Transform player)
 	{
+		_attackers.Clear();
 		InternalData = data;
 		Type = type;
 		Manager = manager;

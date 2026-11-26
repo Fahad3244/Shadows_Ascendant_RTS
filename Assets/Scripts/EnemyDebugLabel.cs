@@ -5,6 +5,7 @@ public class EnemyDebugLabel : MonoBehaviour
 	private static EnemyDebugLabel _instance;
 	private Transform _player;
 	private EnemyBase[] _enemies = new EnemyBase[0];
+	private UnitAgent[] _troops = new UnitAgent[0];
 	private float _timer;
 	private GUIStyle _style;
 
@@ -29,6 +30,7 @@ public class EnemyDebugLabel : MonoBehaviour
 			if (pc != null) _player = pc.transform;
 		}
 		_enemies = FindObjectsOfType<EnemyBase>();
+		_troops = FindObjectsOfType<UnitAgent>();
 	}
 
 	private void OnGUI()
@@ -49,12 +51,29 @@ public class EnemyDebugLabel : MonoBehaviour
 			AttackDirection dir = e.GetAttackDirection(_player.position);
 			Color c = dir == AttackDirection.Front ? Color.red : (dir == AttackDirection.Back ? Color.green : Color.yellow);
 			string text = (e.IsAware ? "AWARE" : "UNAWARE") + (e.IsStunned ? " | STUNNED" : "") + " | " + dir.ToString().ToUpper();
+			text += "\nATTACHED " + e.AttachedCount + "/" + e.Capacity + " | LIGHT " + e.FrontCount;
 			if (e.LastDefense != "" && Time.time - e.LastDefenseTime < 4f) text += "\n" + e.LastDefense;
 
-			Rect r = new Rect(sp.x - 120f, Screen.height - sp.y - 20f, 240f, 40f);
+			Rect r = new Rect(sp.x - 120f, Screen.height - sp.y - 20f, 240f, 60f);
 			_style.normal.textColor = Color.black;
 			GUI.Label(new Rect(r.x + 1, r.y + 1, r.width, r.height), text, _style);
 			_style.normal.textColor = c;
+			GUI.Label(r, text, _style);
+		}
+
+		foreach (UnitAgent u in _troops)
+		{
+			if (u == null || !u.gameObject.activeInHierarchy || u.CurrentStateEnum == UnitState.Dead) continue;
+			int n = u.AttackerCount;
+			if (n == 0) continue;
+			if (Vector3.Distance(u.transform.position, _player.position) > 25f) continue;
+			Vector3 sp = cam.WorldToScreenPoint(u.transform.position + Vector3.up * 3.2f);
+			if (sp.z < 0f) continue;
+			string text = "ATTACKED " + n + "/" + u.AttackerCapacity;
+			Rect r = new Rect(sp.x - 80f, Screen.height - sp.y - 12f, 160f, 24f);
+			_style.normal.textColor = Color.black;
+			GUI.Label(new Rect(r.x + 1, r.y + 1, r.width, r.height), text, _style);
+			_style.normal.textColor = n >= u.AttackerCapacity ? Color.red : Color.yellow;
 			GUI.Label(r, text, _style);
 		}
 	}

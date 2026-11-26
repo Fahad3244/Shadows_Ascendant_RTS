@@ -247,6 +247,16 @@ public static partial class TestArenaBuilder
             "Press Z, press 3, HOLD left-click.\nEXPECT: a wall covers the near side. Troops take the free points around it (Console may show REASSIGNED). No troop stays stuck, and points= never shows a stuck R.");
         AddEnemy(st, "S3E_Enemy", -60f, -2f, _dummy, 4);
         Wall(st, "S3E_Blocker", -60f, -3.5f, 3.5f, 1f);
+
+        Lane(st, 90f, "S3-F  TROOP CAPACITY",
+            "Press G for the debug labels. Press 3 (Melee) and TAP once: one troop goes out.\nEXPECT: three enemies are nearby but only ONE attacks it (label ATTACKED 1/1). The other two wait. Now press 2 (Ranged) and tap once: up to TWO enemies attack it (ATTACKED 2/2).\nLimits: Melee 1, Ranged 2, Medic 2, Builder 3.");
+        foreach (GameObject cap in new[]
+        {
+            AddEnemy(st, "S3F_EnemyA", 86f, 4f, _weak, 3),
+            AddEnemy(st, "S3F_EnemyB", 90f, 8f, _weak, 3),
+            AddEnemy(st, "S3F_EnemyC", 94f, 4f, _weak, 3)
+        })
+            if (cap != null) Set<EnemyBase>(cap, "ignorePlayer", true);
     }
 
     private static void BuildS4()
