@@ -549,6 +549,7 @@ public class EnemyBase : MonoBehaviour
 
 		if (!canCounter) result = "NO COUNTER (disabled)";
 		else if (IsStunned) result = "BYPASS: STUNNED";
+		else if (troop.IsConcealed) result = "BYPASS: CONCEALED";
 		else if (!IsAware) result = "BYPASS: UNAWARE";
 		else if (dir != AttackDirection.Front) result = "BYPASS: " + dir.ToString().ToUpper();
 		else if (engagedCount >= overwhelmCount) result = "OVERWHELMED (" + engagedCount + " troops)";

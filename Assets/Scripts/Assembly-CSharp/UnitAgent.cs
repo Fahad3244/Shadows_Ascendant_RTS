@@ -81,6 +81,26 @@ public class UnitAgent : MonoBehaviour
 
 	public PickupItem CarriedPickup { get; set; }
 
+	public static bool TestConcealMelee;
+	public bool IsConcealed { get; private set; }
+	private GameObject _concealMarker;
+
+	// Technical condition for stealth / camouflage. Phase 3 abilities will call this.
+	public void SetConcealed(bool value)
+	{
+		IsConcealed = value;
+		if (value && _concealMarker == null)
+		{
+			_concealMarker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+			Destroy(_concealMarker.GetComponent<Collider>());
+			_concealMarker.transform.SetParent(transform, false);
+			_concealMarker.transform.localPosition = new Vector3(0f, 3.6f, 0f);
+			_concealMarker.transform.localScale = Vector3.one * 0.45f;
+			_concealMarker.GetComponent<Renderer>().material = new Material(Shader.Find("Sprites/Default")) { color = new Color(0.4f, 0.9f, 1f) };
+		}
+		if (_concealMarker != null) _concealMarker.SetActive(value);
+	}
+
 	private readonly HashSet<EnemyBase> _attackers = new HashSet<EnemyBase>();
 
 	public int AttackerCapacity => Manager != null ? Manager.SlotsFor(Type) : 1;
@@ -179,6 +199,7 @@ public class UnitAgent : MonoBehaviour
 		_health.OnDeath.AddListener(HandleDeath);
 		ChangeState(UnitState.Idle);
 		RefreshGearVisual();
+		SetConcealed(TestConcealMelee && type == UnitType.Melee);
 	}
 
 	public void ResetHealth()

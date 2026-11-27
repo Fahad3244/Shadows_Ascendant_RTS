@@ -187,6 +187,7 @@ public class ArenaHintDisplay : MonoBehaviour
         "Number on a movable = troops still needed\n" +
         "Waypoint ring: <color=#6fa8ff>blue</color> yours, <color=#ff6666>red</color> enemy\n\n" +
         "<b><color=#ffd966>TEST KEYS</color></b>\n" +
+        "<color=#9ad>C</color> conceal / reveal Melee troops (test)\n" +
         "<color=#9ad>G</color> debug panel   <color=#9ad>Y</color> 6 enemies attack you\n" +
         "<color=#9ad>N</color> stun enemies   <color=#9ad>U</color> human target aware / unaware\n" +
         "<color=#9ad>E</color> wake enemy   <color=#9ad>M</color> killer   <color=#9ad>B</color> open walls   <color=#9ad>K / L</color> flip waypoint\n\n" +

@@ -10,6 +10,7 @@ public class TestArenaHelper : MonoBehaviour
     public string[] spawnNames;   // level only: names for the Tab menu
 
     private bool _menu;
+    private GUIStyle _tag;
     private float _vis;
     private int _sel;
     private GUIStyle _style;
@@ -55,6 +56,13 @@ public class TestArenaHelper : MonoBehaviour
             }
         }
 
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            UnitAgent.TestConcealMelee = !UnitAgent.TestConcealMelee;
+            foreach (UnitAgent u in FindObjectsOfType<UnitAgent>())
+                u.SetConcealed(UnitAgent.TestConcealMelee && u.Type == UnitType.Melee);
+        }
+
         HandleMenu();
         _vis = Mathf.MoveTowards(_vis, _menu ? 1f : 0f, Time.deltaTime / 0.2f);
     }
@@ -75,6 +83,17 @@ public class TestArenaHelper : MonoBehaviour
 
     private void OnGUI()
     {
+        if (UnitAgent.TestConcealMelee)
+        {
+            if (_tag == null)
+            {
+                _tag = new GUIStyle(GUI.skin.label) { fontSize = 15, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
+                _tag.normal.textColor = new Color(0.4f, 0.9f, 1f);
+            }
+            Rect tr = new Rect(10f, Screen.height - 62f, 300f, 28f);
+            GUI.DrawTexture(tr, UiEase.Solid(new Color(0.05f, 0.07f, 0.10f, 0.85f)));
+            GUI.Label(tr, "MELEE TROOPS CONCEALED (C)", _tag);
+        }
         if (_vis <= 0f || !HasMenu) return;
         if (_style == null)
         {

@@ -553,7 +553,7 @@ public static partial class TestArenaBuilder
         if (combo != null) Set<EnemyBase>(combo, "ignorePlayer", true);
         if (combo != null) combo.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
 
-        Sign(st, "MORE TESTS NORTH:  S8-K ROAR (LEFT)    S8-L SIZE LINEUP (RIGHT)", 0f, 20f, 3.5f);
+        Sign(st, "MORE TESTS NORTH:  S8-K ROAR (LEFT)   S8-M CONCEAL (MIDDLE)   S8-L SIZE LINEUP (RIGHT)", 0f, 12f, 3.5f);
 
         LaneAt(st, -30f, 45f, "S8-K  TURRET ROAR",
             "1 Press ` (all troops), then press Q: every troop runs to a guard flag. With 4 or fewer troops left with you, you are in TURRET MODE: you cannot walk, only turn.\n2 Press Y: six enemies surround you and attach (G panel: [OOOO]).\n3 Press R: a ring expands, the enemies are pushed back and staggered, and your attach points empty. They walk back and re-attach.\nEXPECT: R has a 12-second cooldown and only works in Turret Mode.");
@@ -574,6 +574,15 @@ public static partial class TestArenaBuilder
         AddEnemy(st, "S8L_Standard4", 21f, 53f, _dummy, 4);
         AddMiniboss(st, "S8L_Miniboss", 33f, 53f, lineMini);
         AddBoss(st, "S8L_Boss", 52f, 53f, lineBoss);
+
+        LaneAt(st, 0f, 45f, "S8-M  STEALTH / CAMOUFLAGE",
+            "Press G for labels. Press 3 (Melee), press Z to target the hunter, and TAP once: it is aware and faces you, so the troop is COUNTERED.\nNow press C: the Melee troops get a cyan ball above them (concealed). TAP again.\nEXPECT: BYPASS: CONCEALED, and the troop attaches. Press C again to reveal and the counter returns. Ranged and other troop types are not concealed by C.");
+        GameObject concealHunter = AddEnemy(st, "S8M_Hunter", 0f, 38f, _hunter, 4);
+        if (concealHunter != null)
+        {
+            Set<EnemyBase>(concealHunter, "ignorePlayer", true);
+            concealHunter.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+        }
     }
 
     // ---------------------------------------------------------------- builders
@@ -663,17 +672,29 @@ public static partial class TestArenaBuilder
         return e;
     }
 
+    // Changes the ring radius but keeps the same absolute ring height the prefab had.
+    private static void SetRingKeepHeight(GameObject e, float newRadius)
+    {
+        AttachableTarget at = e.GetComponent<AttachableTarget>();
+        if (at == null) return;
+        SerializedObject so = new SerializedObject(at);
+        float h0 = so.FindProperty("attachPointHeight").floatValue;
+        float r0 = so.FindProperty("attachRadius").floatValue;
+        so.FindProperty("attachRadius").floatValue = newRadius;
+        so.FindProperty("ringHeightOverride").floatValue = h0 * r0;
+        so.ApplyModifiedProperties();
+    }
+
     private static GameObject AddBigEnemy(Transform st, string name, float x, float z, EnemyData data, int slots, float scale, float ring, float front, float uiHeight)
     {
         GameObject e = AddEnemy(st, name, x, z, data, slots);
         if (e == null) return null;
         e.transform.localScale = Vector3.one * scale;
-        Set<EnemyBase>(e, "knockbackMultiplier", scale >= 4.5f ? 0.25f : 0.5f);
-        Set<AttachableTarget>(e, "attachRadius", ring);
+        SetRingKeepHeight(e, ring);
         Set<AttachableTarget>(e, "frontRadius", front);
         Set<AttachableTarget>(e, "uiOffset", new Vector3(0f, uiHeight, 0f));
         Set<AttachableTarget>(e, "maxFrontAttackers", slots >= 6 ? 4 : 3);
-        Set<AttachableTarget>(e, "attachPointHeight", 0f);
+        Set<EnemyBase>(e, "knockbackMultiplier", scale >= 4.5f ? 0.25f : 0.5f);
         return e;
     }
 
@@ -693,7 +714,7 @@ public static partial class TestArenaBuilder
         if (e == null) return null;
         e.transform.localScale = Vector3.one * 0.5f;
         Set<AttachableTarget>(e, "settings", _attachCritter);
-        Set<AttachableTarget>(e, "attachRadius", 1.0f);
+        SetRingKeepHeight(e, 1.0f);
         Set<AttachableTarget>(e, "frontRadius", 1.8f);
         Set<AttachableTarget>(e, "uiOffset", new Vector3(0f, 1.6f, 0f));
         Set<AttachableTarget>(e, "maxFrontAttackers", 3);

@@ -21,6 +21,10 @@ public class AttachableTarget : MonoBehaviour
 	[SerializeField]
 	private float attachPointHeight;
 
+	[Tooltip("-1 = use Attach Point Height x Attach Radius. Otherwise the exact ring height above the pivot.")]
+	[SerializeField]
+	private float ringHeightOverride = -1f;
+
 	[Header("Movement Rules")]
 	[Tooltip("How many units must be attached before this object can be swept/moved? Set to 0 if immovable.")]
 	[SerializeField]
@@ -110,10 +114,15 @@ public class AttachableTarget : MonoBehaviour
 
 	private Dictionary<UnitAgent, int> _slotIndex = new Dictionary<UnitAgent, int>();
 
+	private float RingY(float radius)
+	{
+		return ringHeightOverride >= 0f ? ringHeightOverride : attachPointHeight * radius;
+	}
+
 	private Vector3 SlotWorldPosition(int i)
 	{
 		float f = (float)i * (360f / (float)maxAttachSlots) * (MathF.PI / 180f);
-		return transform.position + new Vector3(Mathf.Sin(f), attachPointHeight, Mathf.Cos(f)) * attachRadius;
+		return transform.position + new Vector3(Mathf.Sin(f), 0f, Mathf.Cos(f)) * attachRadius + Vector3.up * RingY(attachRadius);
 	}
 
 	private void AssignSlot(UnitAgent agent)
@@ -574,7 +583,7 @@ public class AttachableTarget : MonoBehaviour
 			int inRing = num % unlimitedRingSlots;
 			float a = ((float)inRing * (360f / (float)unlimitedRingSlots) + (float)ring * 22.5f) * (MathF.PI / 180f);
 			float r = attachRadius + (float)ring * unlimitedRingSpacing;
-			return transform.position + new Vector3(Mathf.Sin(a), attachPointHeight, Mathf.Cos(a)) * r;
+			return transform.position + new Vector3(Mathf.Sin(a), 0f, Mathf.Cos(a)) * r + Vector3.up * RingY(r);
 		}
 		return SlotWorldPosition(num);
 	}
@@ -725,7 +734,7 @@ public class AttachableTarget : MonoBehaviour
 			for (int i = 0; i < maxAttachSlots; i++)
 			{
 				float f = (float)i * num * (MathF.PI / 180f);
-				Vector3 vector2 = new Vector3(Mathf.Sin(f), attachPointHeight, Mathf.Cos(f)) * attachRadius;
+				Vector3 vector2 = new Vector3(Mathf.Sin(f), 0f, Mathf.Cos(f)) * attachRadius + Vector3.up * RingY(attachRadius);
 				Vector3 vector3 = base.transform.position + vector2;
 				Gizmos.color = Application.isPlaying ? PointColor(i) : Color.cyan;
 				Gizmos.DrawSphere(vector3, 0.25f);
