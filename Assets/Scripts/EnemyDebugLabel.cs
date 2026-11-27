@@ -65,15 +65,20 @@ public class EnemyDebugLabel : MonoBehaviour
 		{
 			if (u == null || !u.gameObject.activeInHierarchy || u.CurrentStateEnum == UnitState.Dead) continue;
 			int n = u.AttackerCount;
-			if (n == 0) continue;
+			if (n == 0 && u.AttachmentPhase == AttachPhase.None) continue;
 			if (Vector3.Distance(u.transform.position, _player.position) > 25f) continue;
 			Vector3 sp = cam.WorldToScreenPoint(u.transform.position + Vector3.up * 3.2f);
 			if (sp.z < 0f) continue;
-			string text = "ATTACKED " + n + "/" + u.AttackerCapacity;
+			string text = n > 0
+				? "ATTACKED " + n + "/" + u.AttackerCapacity + " | " + u.AttachmentPhase + " (" + u.LastDetachCause + ")"
+				: u.AttachmentPhase + " (" + u.LastDetachCause + ")";
 			Rect r = new Rect(sp.x - 80f, Screen.height - sp.y - 12f, 160f, 24f);
 			_style.normal.textColor = Color.black;
 			GUI.Label(new Rect(r.x + 1, r.y + 1, r.width, r.height), text, _style);
-			_style.normal.textColor = n >= u.AttackerCapacity ? Color.red : Color.yellow;
+			if (u.AttachmentPhase == AttachPhase.Attached) _style.normal.textColor = Color.green;
+			else if (u.AttachmentPhase == AttachPhase.Disengaging) _style.normal.textColor = Color.yellow;
+			else if (u.LastDetachCause == DetachCause.Thrown || u.LastDetachCause == DetachCause.AttackerDied || u.LastDetachCause == DetachCause.TargetDied) _style.normal.textColor = Color.red;
+			else _style.normal.textColor = n >= u.AttackerCapacity ? Color.red : Color.yellow;
 			GUI.Label(r, text, _style);
 		}
 	}

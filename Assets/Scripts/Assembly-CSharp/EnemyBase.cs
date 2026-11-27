@@ -178,6 +178,7 @@ public class EnemyBase : MonoBehaviour
 			_navAgent.isStopped = false;
 			_attachedTimer = 0f;
 			if (CombatDebug.Enabled) Debug.Log($"[Stun] {name} recovered (attached={AttachedCount})");
+			if (StunRecovered != null) StunRecovered(this);
 		}
 		if (IsFeared) { DoFlee(); return; }
 		if (_wasFeared)
@@ -411,6 +412,19 @@ public class EnemyBase : MonoBehaviour
 	public bool IsStunned => Time.time < _stunnedUntil;
 	public bool IsInterrupted => Time.time < _interruptedUntil;
 
+	public static event System.Action<EnemyBase> StunStarted;
+	public static event System.Action<EnemyBase> StunRecovered;
+
+	public string OverthrowStatus
+	{
+		get
+		{
+			if (_myAttachableSelf == null || _myAttachableSelf.AttachedCount == 0) return "no attackers";
+			if (IsStunned) return "BLOCKED (stunned)";
+			return "ELIGIBLE";
+		}
+	}
+
 	public event System.Action<EnemyBase> OnFeared;
 	public bool IsFeared => Time.time < _fearUntil;
 
@@ -637,6 +651,7 @@ public class EnemyBase : MonoBehaviour
 		EndGlow();
 		if (_navAgent.isOnNavMesh) _navAgent.isStopped = true;
 		if (!already && CombatDebug.Enabled) Debug.Log($"[Stun] {name} stunned for {seconds}s (attached={AttachedCount})");
+		if (!already && StunStarted != null) StunStarted(this);
 	}
 
 	public float GetDamageMultiplierFrom(Vector3 attackerPos)
@@ -664,7 +679,7 @@ public class EnemyBase : MonoBehaviour
 			}
 			return;
 		}
-		if (_myAttachableSelf.GetAllAttachedUnits().Count > 0)
+		if (_myAttachableSelf.OverthrowEligible)
 		{
 			_attachedTimer += Time.deltaTime;
 			if (_attachedTimer >= shakeOffDelay) _telegraphTimer = shakeOffTelegraph;

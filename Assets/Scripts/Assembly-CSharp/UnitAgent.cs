@@ -84,6 +84,8 @@ public class UnitAgent : MonoBehaviour
 	public static bool TestConcealMelee;
 	public static bool TestFearRanged;
 	public bool IsConcealed { get; private set; }
+	public AttachPhase AttachmentPhase { get; set; }
+	public DetachCause LastDetachCause { get; set; }
 	private GameObject _concealMarker;
 
 	// Technical condition for stealth / camouflage. Phase 3 abilities will call this.
@@ -189,6 +191,8 @@ public class UnitAgent : MonoBehaviour
 	public void Initialize(Unit data, UnitType type, PlayerUnitManager manager, UnitPool pool, Transform player)
 	{
 		_attackers.Clear();
+		AttachmentPhase = AttachPhase.None;
+		LastDetachCause = DetachCause.Other;
 		InternalData = data;
 		Type = type;
 		Manager = manager;
@@ -246,6 +250,8 @@ public class UnitAgent : MonoBehaviour
 		if (_states.ContainsKey(newStateEnum) && CurrentStateEnum != UnitState.Dead && (CurrentStateEnum != newStateEnum || _currentState == null))
 		{
 			CurrentStateEnum = newStateEnum;
+			if (AttachmentPhase == AttachPhase.Disengaging && newStateEnum != UnitState.Returning && newStateEnum != UnitState.Stunned)
+				AttachmentPhase = AttachPhase.Detached;
 			_currentState?.Exit();
 			_currentState = _states[newStateEnum];
 			_currentState.Enter();
@@ -283,14 +289,14 @@ public class UnitAgent : MonoBehaviour
 
 	public void ReturnToPlayer()
 	{
-		ClearReservation();
+		ClearReservation(DetachCause.Disengaged);
 		ChangeState(UnitState.Returning);
 	}
 
 	public void GetThrown(Vector3 direction, float damage, float knockback, float stunSeconds, Transform source)
 	{
 		if (CurrentStateEnum == UnitState.Dead) return;
-		ClearReservation();
+		ClearReservation(DetachCause.Thrown);
 		((UnitStunnedState)_states[UnitState.Stunned]).Setup(direction, knockback, stunSeconds);
 		ChangeState(UnitState.Stunned);
 		_health.TakeDamage(new DamageInfo { amount = damage, attackerReference = source, type = DamageType.Normal, attackType = AttackType.Heavy });
@@ -307,13 +313,15 @@ public class UnitAgent : MonoBehaviour
 		Pool.ReturnAgent(this);
 	}
 
-	public void ClearReservation()
+	public void ClearReservation(DetachCause cause = DetachCause.Other)
 	{
+		LastDetachCause = cause;
 		if (ReservedTarget != null)
 		{
 			ReservedTarget.CancelReservation(this);
 			ReservedTarget = null;
 		}
+		LastDetachCause = DetachCause.Other;
 	}
 
 	public void SetReservedTarget(AttachableTarget target)
@@ -442,7 +450,7 @@ public class UnitAgent : MonoBehaviour
 
 	private void HandleDeath()
 	{
-		ClearReservation();
+		ClearReservation(DetachCause.AttackerDied);
 		if (CarriedPickup != null)
 		{
 			CarriedPickup.Drop(transform.position);

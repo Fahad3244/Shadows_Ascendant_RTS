@@ -207,6 +207,26 @@ public class AttachableTarget : MonoBehaviour
 
 	public int FrontCount => _frontUnits.Count;
 
+	public static event Action<AttachableTarget, UnitAgent> Attached;
+	public static event Action<AttachableTarget, UnitAgent, DetachCause> Detached;
+	public static event Action<AttachableTarget> FirstAttached;
+	public static event Action<AttachableTarget> AllDetached;
+
+	// Ring-attached troops only. Light attackers are not in this list.
+	public IReadOnlyList<UnitAgent> AttachedUnits => _attachedUnits;
+	public bool SupportsOverthrow => _enemy != null;
+	public bool IsTargetStunned => _enemy != null && _enemy.IsStunned;
+	public bool OverthrowEligible => _enemy != null && _attachedUnits.Count > 0 && !IsTargetStunned && (_health == null || !_health.IsDead);
+	public int AttachedCount => _attachedUnits.Count;
+
+	private void NotifyDetached(UnitAgent agent, DetachCause cause)
+	{
+		if (agent != null)
+			agent.AttachmentPhase = (cause == DetachCause.Disengaged || cause == DetachCause.Thrown) ? AttachPhase.Disengaging : AttachPhase.Detached;
+		if (Detached != null) Detached(this, agent, cause);
+		if (_attachedUnits.Count == 0 && AllDetached != null) AllDetached(this);
+	}
+
 	private void LogAttach(string msg)
 	{
 		if (!CombatDebug.Enabled || _unlimitedSlots) return;
@@ -509,6 +529,9 @@ public class AttachableTarget : MonoBehaviour
 			_attachedUnits.Add(agent);
 			AssignSlot(agent);
 			LogAttach($"ATTACHED ring {agent.name}{DescribeEnemy(agent)}");
+			agent.AttachmentPhase = AttachPhase.Attached;
+			if (Attached != null) Attached(this, agent);
+			if (_attachedUnits.Count == 1 && FirstAttached != null) FirstAttached(this);
 			agent.OnAttachedToTarget(this);
 			UpdateUI();
 			CheckMoveState();
@@ -518,6 +541,7 @@ public class AttachableTarget : MonoBehaviour
 	public void CancelReservation(UnitAgent agent)
 	{
 		bool flag = false;
+		bool wasRing = false;
 		if (_incomingUnits.Contains(agent))
 		{
 			_incomingUnits.Remove(agent);
@@ -529,6 +553,7 @@ public class AttachableTarget : MonoBehaviour
 			_attachedUnits.Remove(agent);
 			_slotIndex.Remove(agent);
 			flag = true;
+			wasRing = true;
 			CheckMoveState();
 		}
 		else if (_frontUnits.Remove(agent))
@@ -541,6 +566,7 @@ public class AttachableTarget : MonoBehaviour
 			UpdateUI();
 			LogAttach($"RELEASED {agent.name}");
 		}
+		if (wasRing) NotifyDetached(agent, agent != null ? agent.LastDetachCause : DetachCause.Other);
 	}
 
 	private void CheckMoveState()
@@ -603,7 +629,14 @@ public class AttachableTarget : MonoBehaviour
 
 	private void PruneInvalid()
 	{
+		int ringBefore = _attachedUnits.Count;
 		_attachedUnits.RemoveAll(a => a == null || !a.gameObject.activeInHierarchy);
+		int removedRing = ringBefore - _attachedUnits.Count;
+		if (removedRing > 0)
+		{
+			for (int k = 0; k < removedRing; k++) if (Detached != null) Detached(this, null, DetachCause.Other);
+			if (_attachedUnits.Count == 0 && AllDetached != null) AllDetached(this);
+		}
 		_incomingUnits.RemoveWhere(a => a == null || !a.gameObject.activeInHierarchy);
 		for (int i = _frontUnits.Count - 1; i >= 0; i--)
 		{
@@ -707,7 +740,9 @@ public class AttachableTarget : MonoBehaviour
 		UnitAgent[] array = _attachedUnits.ToArray();
 		foreach (UnitAgent agent in array)
 		{
+			if (agent != null) agent.LastDetachCause = DetachCause.TargetDied;
 			CancelReservation(agent);
+			if (agent != null) agent.LastDetachCause = DetachCause.Other;
 		}
 		array = _incomingUnits.ToArray();
 		foreach (UnitAgent agent2 in array)

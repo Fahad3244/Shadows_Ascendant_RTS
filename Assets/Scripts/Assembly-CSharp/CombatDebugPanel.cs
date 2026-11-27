@@ -68,10 +68,14 @@ public class CombatDebugPanel : MonoBehaviour
 			if (n.IsStunned) t += "  <color=#ffdd55>STUNNED " + n.StunRemaining.ToString("F1") + "s</color>";
 			t += "\nYou are at its <color=#" + dc + ">" + dir.ToString().ToUpper() + "</color>\n";
 			if (n.LastDefense != "" && Time.time - n.LastDefenseTime < 4f) t += "Last attach: <color=#7fd1ff>" + n.LastDefense + "</color>\n";
-			t += "Attached " + n.AttachedCount + "   Shake-off: " + n.OverthrowTimerState + "\n";
+			t += "Attached " + n.AttachedCount + "/" + n.Capacity + "   Overthrow: " + n.OverthrowStatus + "\n";
+			t += "Shake-off: " + n.OverthrowTimerState + "\n";
 			if (eh != null) t += "HP " + eh.CurrentHP.ToString("F0") + " / " + eh.MaxHP.ToString("F0") + "\n";
 		}
 		else t += "<color=#888888>none nearby</color>\n";
+
+		string log = AttachmentLog.Text();
+		if (log.Length > 0) t += "\n<b>ATTACHMENT EVENTS</b>\n<color=#aab>" + log + "</color>\n";
 
 		// Player
 		t += "\n<b>PLAYER</b>\n";
@@ -93,7 +97,7 @@ public class CombatDebugPanel : MonoBehaviour
 		}
 
 		GUIContent c = new GUIContent(t);
-		float w = 330f;
+		float w = 430f;
 		float h = _text.CalcHeight(c, w - 20f) + 16f;
 		Rect r = new Rect(Screen.width - w - 10f, Screen.height - h - 10f, w, h);
 		GUI.DrawTexture(r, UiEase.Solid(new Color(0.05f, 0.07f, 0.10f, 0.85f)));

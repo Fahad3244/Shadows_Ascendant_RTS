@@ -293,6 +293,11 @@ public static partial class TestArenaBuilder
         GameObject heavyHitter = AddEnemy(st, "S3G_Slammer", -86f, 6f, slammer, 3);
         foreach (GameObject g3 in new[] { lightTarget, heavyHitter })
             if (g3 != null) Set<EnemyBase>(g3, "ignorePlayer", true);
+
+        LaneAt(st, -45f, 0f, "S3-H  OVERTHROW HOOK",
+            "Press G: the panel shows ATTACHMENT EVENTS and an Overthrow line. Press 3, press Z on the tank, and hold-send 5 troops.\nEXPECT: four ATTACHED lines (4/4), one FIRST ATTACKER line, and Overthrow ELIGIBLE. The fifth troop is a light attacker and gets no ATTACHED line. Press N: STUNNED, Overthrow BLOCKED, the troops stay attached. When the stun ends: STUN ENDED, and the shake-off restarts. Tap right-click: DETACHED (Disengaged). When the shake-off throws them: DETACHED (Thrown), then NO ATTACKERS left.\nThis is the hook that Phase 2 Overthrow will use.");
+        GameObject hookTank = AddEnemy(st, "S3H_Tank", -45f, -2f, _tank, 4);
+        if (hookTank != null) Set<EnemyBase>(hookTank, "ignorePlayer", true);
     }
 
     private static void BuildS4()
