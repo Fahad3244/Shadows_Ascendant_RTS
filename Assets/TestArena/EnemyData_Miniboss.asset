@@ -18,7 +18,7 @@ MonoBehaviour:
   attackDamage: 40
   attackCooldown: 1
   attackInterval: 1.2
-  attackRange: 4
+  attackRange: 5.5
   aggroRange: 10
   patrolRadius: 1
   passive: 0

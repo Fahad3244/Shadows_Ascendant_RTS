@@ -576,10 +576,7 @@ public class AttachableTarget : MonoBehaviour
 			float r = attachRadius + (float)ring * unlimitedRingSpacing;
 			return transform.position + new Vector3(Mathf.Sin(a), attachPointHeight, Mathf.Cos(a)) * r;
 		}
-		float num2 = 360f / (float)maxAttachSlots;
-		float f = (float)num * num2 * (MathF.PI / 180f);
-		Vector3 vector = new Vector3(Mathf.Sin(f), attachPointHeight, Mathf.Cos(f)) * attachRadius;
-		return base.transform.position + vector;
+		return SlotWorldPosition(num);
 	}
 
 	public UnitAgent GetPriorityAttachedUnit()

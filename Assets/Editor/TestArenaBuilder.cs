@@ -15,6 +15,8 @@ public static partial class TestArenaBuilder
     private static Transform _root;
     private static float _playerY = 0.1f;
     private static float _groundY = 0.72f;
+    private static Bounds _groundBounds;
+    private static bool _hasGround;
     private static EnemyData _dummy, _weak, _brute, _killer, _tank, _hunter;
     private static EnemyData _mini, _boss;
     private static EnemyData _critter, _critterTest;
@@ -53,11 +55,19 @@ public static partial class TestArenaBuilder
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player == null) player = GameObject.Find("Player");
         if (player != null) _playerY = player.transform.position.y;
+        _hasGround = false;
         GameObject groundGo = GameObject.Find("World/Ground");
         if (groundGo != null)
         {
             Renderer gr = groundGo.GetComponent<Renderer>();
-            if (gr != null) _groundY = gr.bounds.max.y;
+            if (gr != null)
+            {
+                _groundY = gr.bounds.max.y;
+                _groundBounds = gr.bounds;
+                _hasGround = true;
+                Debug.Log("[TestArena] Ground x " + gr.bounds.min.x.ToString("F0") + ".." + gr.bounds.max.x.ToString("F0") +
+                          "  z " + gr.bounds.min.z.ToString("F0") + ".." + gr.bounds.max.z.ToString("F0"));
+            }
         }
 
         _dummy = MakeEnemyData("EnemyData_Dummy", 600f, 0f, 0.5f, 1f, 1.5f, 1f);
@@ -68,8 +78,8 @@ public static partial class TestArenaBuilder
         _hunter = MakeEnemyData("EnemyData_Hunter", 800f, 10f, 10f, 1f, 1.2f, 3.5f);
         _mini = MakeEnemyData("EnemyData_Miniboss", 1500f, 40f, 10f, 1f, 1.2f, 3.5f);
         _boss = MakeEnemyData("EnemyData_Boss", 3000f, 60f, 12f, 1f, 1.5f, 3.5f);
-        _mini.attackRange = 4f;
-        _boss.attackRange = 5f;
+        _mini.attackRange = 5.5f;
+        _boss.attackRange = 7f;
         _mini.category = EnemyCategory.Miniboss;
         _boss.category = EnemyCategory.Boss;
         EditorUtility.SetDirty(_mini);
@@ -485,20 +495,20 @@ public static partial class TestArenaBuilder
 
         Lane(st, -45f, "S8-A  SHAKE-OFF",
             "Press 3 (Melee), press Z, HOLD left-click. Wait.\nEXPECT: about 5 seconds after the first troop attaches, the enemy glows yellow for 1.5 seconds, then throws every attached troop away. Thrown troops take damage, slide back and show a gray ball (stunned). Run it again and RECALL (tap right-click) during the glow: that troop is safe.");
-        AddEnemy(st, "S8A_Tank", -45f, -2f, _tank, 5);
+        AddEnemy(st, "S8A_Tank", -45f, -2f, _tank, 4);
 
         Lane(st, -27f, "S8-B  BACKSTAB",
             "Press 3 (Melee), press Z, HOLD left-click. Troops arrive from behind the enemy.\nEXPECT: the damage numbers on troops behind it show 30 (3x backstab).");
-        AddEnemy(st, "S8B_Tank", -27f, -2f, _tank, 5);
+        AddEnemy(st, "S8B_Tank", -27f, -2f, _tank, 4);
 
         Lane(st, -9f, "S8-C  FRONT (NO BACKSTAB)",
             "Same as S8-B, but this enemy faces YOU.\nEXPECT: damage numbers show 10 (ring) or 5 (front attackers), no 30s. This proves backstab only works from behind.");
-        GameObject facing = AddEnemy(st, "S8C_Tank", -9f, -2f, _tank, 5);
+        GameObject facing = AddEnemy(st, "S8C_Tank", -9f, -2f, _tank, 4);
         if (facing != null) facing.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
 
         Lane(st, 9f, "S8-D  STUN",
             "Press 3 (Melee), press Z, HOLD left-click. Once troops are hitting it, press N (test key only).\nEXPECT: for 5 seconds the enemy cannot move or attack and a pending shake-off is cancelled. Damage numbers do NOT change.");
-        AddEnemy(st, "S8D_Tank", 9f, -2f, _tank, 5);
+        AddEnemy(st, "S8D_Tank", 9f, -2f, _tank, 4);
 
         Lane(st, 27f, "S8-F  CART FIRST",
             "Walk to the cart. Press Z until the cart has an outline, then TAP left-click twice: two troops cluster around it (they do not damage it). Then press E to wake the hunter.\nEXPECT: the hunter ignores your closer troops and walks to the CART and attacks it. The Console shows 'target -> S8F_Cart'. When the cart breaks, it turns on your troops. Press X to clear your target afterwards. With 3 troops the cart is carried instead.");
@@ -508,7 +518,7 @@ public static partial class TestArenaBuilder
             Set<MovableObject>(cart, "isCart", true);
             Set<MovableObject>(cart, "cartHealth", 100f);
         }
-        GameObject hunter = AddEnemy(st, "S8F_Hunter", 27f, 4f, _hunter, 5);
+        GameObject hunter = AddEnemy(st, "S8F_Hunter", 27f, 4f, _hunter, 4);
         if (hunter != null)
         {
             Set<EnemyBase>(hunter, "ignorePlayer", true);
@@ -520,16 +530,16 @@ public static partial class TestArenaBuilder
 
         Lane(st, 45f, "S8-G  NEAREST FIRST",
             "Press 3 (Melee), TAP left-click twice (two troops).\nEXPECT: the hunter goes for the NEAREST troop. If two troops are about equally close, it prefers the one that hit it last.");
-        hunter = AddEnemy(st, "S8G_Hunter", 45f, -2f, _hunter, 5);
+        hunter = AddEnemy(st, "S8G_Hunter", 45f, -2f, _hunter, 4);
         if (hunter != null) Set<EnemyBase>(hunter, "ignorePlayer", true);
 
         Lane(st, 63f, "S8-H  MINIBOSS (5 POINTS)",
             "Press 3 (Melee), press Z, HOLD left-click.\nEXPECT: it is clearly bigger than you. The number shows 5 and 5 troops fit around it without overlapping. It has 1500 HP (see the HEALTH box). It hits hard, so expect losses.");
-        AddBigEnemy(st, "S8H_Miniboss", 63f, -2f, _mini, 5, 1.6f, 2.6f, 3.8f, 5f);
+        AddMiniboss(st, "S8H_Miniboss", 63f, -2f, _mini);
 
         Lane(st, 81f, "S8-I  BOSS (6 POINTS)",
             "Press 3 (Melee), press Z, HOLD left-click.\nEXPECT: it is the biggest enemy. The number shows 6 and 6 troops fit around it. It has 3000 HP.");
-        AddBigEnemy(st, "S8I_Boss", 81f, -2f, _boss, 6, 2.2f, 3.4f, 5f, 7f);
+        AddBoss(st, "S8I_Boss", 81f, -2f, _boss);
 
         Lane(st, 99f, "S8-J  COMBINED TEST",
             "1 Press Z, press 3, TAP once: COUNTERED.\n" +
@@ -543,10 +553,11 @@ public static partial class TestArenaBuilder
         if (combo != null) Set<EnemyBase>(combo, "ignorePlayer", true);
         if (combo != null) combo.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
 
-        Lane(st, 117f, "S8-K  TURRET ROAR",
-            "Press ` (all troops), then press Q to leave them at the guard flag.\nWith 4 or fewer troops still with you, TURRET MODE appears at the bottom. Press R: nearby enemies are INTERRUPTED and knocked back. Cooldown 12s.");
-        GameObject roarTarget = AddEnemy(st, "S8K_RoarTarget", 117f, -2f, _dummy, 3);
-        if (roarTarget != null) Set<EnemyBase>(roarTarget, "ignorePlayer", true);
+        Sign(st, "MORE TESTS NORTH:  S8-K ROAR (LEFT)    S8-L SIZE LINEUP (RIGHT)", 0f, 20f, 3.5f);
+
+        LaneAt(st, -30f, 45f, "S8-K  TURRET ROAR",
+            "1 Press ` (all troops), then press Q: every troop runs to a guard flag. With 4 or fewer troops left with you, you are in TURRET MODE: you cannot walk, only turn.\n2 Press Y: six enemies surround you and attach (G panel: [OOOO]).\n3 Press R: a ring expands, the enemies are pushed back and staggered, and your attach points empty. They walk back and re-attach.\nEXPECT: R has a 12-second cooldown and only works in Turret Mode.");
+        AddEnemy(st, "S8K_RoarTarget", -30f, 36f, _dummy, 3);
 
         EnemyData lineMini = MakeEnemyData("EnemyData_LineupMini", 1500f, 0f, 0.5f, 0f, 1.5f, 1f);
         EnemyData lineBoss = MakeEnemyData("EnemyData_LineupBoss", 3000f, 0f, 0.5f, 0f, 1.5f, 1f);
@@ -557,12 +568,12 @@ public static partial class TestArenaBuilder
         EditorUtility.SetDirty(lineMini);
         EditorUtility.SetDirty(lineBoss);
 
-        Lane(st, -63f, "S8-L  SIZE LINEUP",
+        LaneAt(st, 30f, 45f, "S8-L  SIZE LINEUP",
             "Walk north (+Z) about 20 units: four enemies stand in a row, smallest to largest. They are passive, so you can look closely.\nEXPECT: size, health and attach points grow together. Press Z on each one: the counter shows 3, 4, 5, 6. Press G to see their health (600, 600, 1500, 3000). The miniboss is clearly bigger than you, and the boss is bigger again.\nTo see the attack wind-up (enemy grows, tints orange, red disc on the ground), fight the miniboss at S8-H or the boss at S8-I.");
-        AddEnemy(st, "S8L_Standard3", -80f, 8f, _dummy, 3);
-        AddEnemy(st, "S8L_Standard4", -72f, 8f, _dummy, 4);
-        AddBigEnemy(st, "S8L_Miniboss", -62f, 8f, lineMini, 5, 1.6f, 2.6f, 3.8f, 5f);
-        AddBigEnemy(st, "S8L_Boss", -49f, 8f, lineBoss, 6, 2.2f, 3.4f, 4.8f, 6.5f);
+        AddEnemy(st, "S8L_Standard3", 12f, 53f, _dummy, 3);
+        AddEnemy(st, "S8L_Standard4", 21f, 53f, _dummy, 4);
+        AddMiniboss(st, "S8L_Miniboss", 33f, 53f, lineMini);
+        AddBoss(st, "S8L_Boss", 52f, 53f, lineBoss);
     }
 
     // ---------------------------------------------------------------- builders
@@ -583,9 +594,19 @@ public static partial class TestArenaBuilder
 
     private static void Lane(Transform st, float x, string title, string body)
     {
-        GameObject pad = Prim(PrimitiveType.Cylinder, "Pad", st, new Vector3(x, _groundY + 0.03f, -15f), new Vector3(3f, 0.025f, 3f), Mat("Pad", new Color(0.2f, 0.9f, 0.3f)), false);
+        LaneAt(st, x, 0f, title, body);
+    }
+
+    private static void LaneAt(Transform st, float x, float zOff, string title, string body)
+    {
+        Vector3 wp = st.position + new Vector3(x, 0f, -15f + zOff);
+        if (_hasGround && (wp.x < _groundBounds.min.x + 12f || wp.x > _groundBounds.max.x - 12f ||
+                           wp.z < _groundBounds.min.z + 12f || wp.z > _groundBounds.max.z - 12f))
+            Debug.LogWarning("[TestArena] Lane '" + title + "' is near or outside the ground at " + wp);
+
+        GameObject pad = Prim(PrimitiveType.Cylinder, "Pad", st, new Vector3(x, _groundY + 0.03f, -15f + zOff), new Vector3(3f, 0.025f, 3f), Mat("Pad", new Color(0.2f, 0.9f, 0.3f)), false);
         AddHint(pad.transform, title, body, 3f);
-        Sign(st, title, x, -18f, 3.5f);
+        Sign(st, title, x, -18f + zOff, 3.5f);
     }
 
     private static void AddHint(Transform t, string title, string body, float radius)
@@ -631,7 +652,7 @@ public static partial class TestArenaBuilder
         return go;
     }
 
-    private static GameObject AddEnemy(Transform st, string name, float x, float z, EnemyData data, int slots = 5)
+    private static GameObject AddEnemy(Transform st, string name, float x, float z, EnemyData data, int slots = 3)
     {
         GameObject e = Clone("Enemy", st, x, z, name);
         if (e == null) return null;
@@ -647,12 +668,23 @@ public static partial class TestArenaBuilder
         GameObject e = AddEnemy(st, name, x, z, data, slots);
         if (e == null) return null;
         e.transform.localScale = Vector3.one * scale;
-        Set<EnemyBase>(e, "knockbackMultiplier", scale >= 2f ? 0.25f : 0.5f);
+        Set<EnemyBase>(e, "knockbackMultiplier", scale >= 4.5f ? 0.25f : 0.5f);
         Set<AttachableTarget>(e, "attachRadius", ring);
         Set<AttachableTarget>(e, "frontRadius", front);
         Set<AttachableTarget>(e, "uiOffset", new Vector3(0f, uiHeight, 0f));
-        Set<AttachableTarget>(e, "maxFrontAttackers", 6);
+        Set<AttachableTarget>(e, "maxFrontAttackers", slots >= 6 ? 4 : 3);
+        Set<AttachableTarget>(e, "attachPointHeight", 0f);
         return e;
+    }
+
+    private static GameObject AddMiniboss(Transform st, string name, float x, float z, EnemyData data)
+    {
+        return AddBigEnemy(st, name, x, z, data, 5, 3.5f, 3.9f, 5.4f, 7f);
+    }
+
+    private static GameObject AddBoss(Transform st, string name, float x, float z, EnemyData data)
+    {
+        return AddBigEnemy(st, name, x, z, data, 6, 5.2f, 5.4f, 7.2f, 9f);
     }
 
     private static GameObject AddCritter(Transform st, string name, float x, float z, EnemyData data)

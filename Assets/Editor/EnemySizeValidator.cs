@@ -26,6 +26,10 @@ public static class EnemySizeValidator
 		foreach (EnemyBase e in Resources.FindObjectsOfTypeAll<EnemyBase>())
 		{
 			if (EditorUtility.IsPersistent(e) || !e.gameObject.scene.IsValid()) continue;
+			bool archived = false;
+			for (Transform t = e.transform; t != null; t = t.parent)
+				if (t.name == "OldPrototype") { archived = true; break; }
+			if (archived) continue;
 			AttachableTarget at = e.GetComponent<AttachableTarget>();
 			EnemyData d = new SerializedObject(e).FindProperty("enemyData").objectReferenceValue as EnemyData;
 			if (at == null || d == null) continue;
@@ -50,7 +54,7 @@ public static class EnemySizeValidator
 			if (d.category == EnemyCategory.Boss)
 			{
 				if (cap != 6) problems.Add("boss should have 6 points");
-				if (playerH > 0f && h < playerH * 1.8f) problems.Add("boss is not clearly larger than a miniboss");
+				if (playerH > 0f && h < playerH * 1.8f) problems.Add("boss is not clearly larger than the player");
 			}
 			if (d.category == EnemyCategory.Critter)
 			{
