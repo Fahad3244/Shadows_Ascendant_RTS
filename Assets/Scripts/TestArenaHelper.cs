@@ -63,6 +63,8 @@ public class TestArenaHelper : MonoBehaviour
                 u.SetConcealed(UnitAgent.TestConcealMelee && u.Type == UnitType.Melee);
         }
 
+        if (Input.GetKeyDown(KeyCode.V)) UnitAgent.TestFearRanged = !UnitAgent.TestFearRanged;
+
         HandleMenu();
         _vis = Mathf.MoveTowards(_vis, _menu ? 1f : 0f, Time.deltaTime / 0.2f);
     }
@@ -81,19 +83,22 @@ public class TestArenaHelper : MonoBehaviour
         }
     }
 
+    private void Tag(string text, float y, Color c)
+    {
+        if (_tag == null)
+        {
+            _tag = new GUIStyle(GUI.skin.label) { fontSize = 15, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
+        }
+        _tag.normal.textColor = c;
+        Rect tr = new Rect(10f, Screen.height - y, 340f, 28f);
+        GUI.DrawTexture(tr, UiEase.Solid(new Color(0.05f, 0.07f, 0.10f, 0.85f)));
+        GUI.Label(tr, text, _tag);
+    }
+
     private void OnGUI()
     {
-        if (UnitAgent.TestConcealMelee)
-        {
-            if (_tag == null)
-            {
-                _tag = new GUIStyle(GUI.skin.label) { fontSize = 15, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
-                _tag.normal.textColor = new Color(0.4f, 0.9f, 1f);
-            }
-            Rect tr = new Rect(10f, Screen.height - 62f, 300f, 28f);
-            GUI.DrawTexture(tr, UiEase.Solid(new Color(0.05f, 0.07f, 0.10f, 0.85f)));
-            GUI.Label(tr, "MELEE TROOPS CONCEALED (C)", _tag);
-        }
+        if (UnitAgent.TestConcealMelee) Tag("MELEE TROOPS CONCEALED (C)", 62f, new Color(0.4f, 0.9f, 1f));
+        if (UnitAgent.TestFearRanged) Tag("RANGED HITS CAUSE FEAR (V)", 94f, new Color(1f, 0.85f, 0.4f));
         if (_vis <= 0f || !HasMenu) return;
         if (_style == null)
         {

@@ -383,6 +383,15 @@ public static partial class TestArenaBuilder
         AddCritter(st, "S5E_CritterA", 70f, 4f, _critter);
         AddCritter(st, "S5E_CritterB", 76f, 8f, _critter);
         AddCritter(st, "S5E_CritterTest", 82f, 4f, _critterTest);
+
+        LaneAt(st, 0f, 45f, "S5-F  FEAR (FOUNDATION)",
+            "Press G for labels. Press V: the bottom-left tag shows RANGED HITS CAUSE FEAR. Press 2 (Ranged), press Z to target the hunter and hold left-click.\nEXPECT: after 5 ranged hits in 6 seconds the hunter's label shows FEARED and it runs away for 4 seconds, then returns. Press V again and nothing happens: ranged hits are plain Light attacks. This is only the foundation: the full Fear specialisation is Phase 3.");
+        GameObject fearHunter = AddEnemy(st, "S5F_Hunter", 0f, 38f, _hunter, 4);
+        if (fearHunter != null)
+        {
+            Set<EnemyBase>(fearHunter, "ignorePlayer", true);
+            Set<EnemyBase>(fearHunter, "fearHitsToFlee", 5);
+        }
     }
 
     private static void BuildS6()

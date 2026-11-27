@@ -81,6 +81,17 @@ public class EnemyBase : MonoBehaviour
 	private Animator _anim;
 	private readonly HashSet<string> _animParams = new HashSet<string>();
 
+	[Header("Fear (foundation: off while Hits To Flee = 0)")]
+	[SerializeField] private int fearHitsToFlee = 0;
+	[SerializeField] private float fearWindow = 6f;
+	[SerializeField] private float fearDuration = 4f;
+
+	private int _fearHits;
+	private float _fearFirst;
+	private float _fearUntil;
+	private bool _wasFeared;
+	private Vector3 _fleeFrom;
+
 	[Header("Test")]
 	[Tooltip("Test lanes only: enemy never targets the player, only troops.")]
 	[SerializeField] private bool ignorePlayer;
@@ -167,6 +178,14 @@ public class EnemyBase : MonoBehaviour
 			_navAgent.isStopped = false;
 			_attachedTimer = 0f;
 			if (CombatDebug.Enabled) Debug.Log($"[Stun] {name} recovered (attached={AttachedCount})");
+		}
+		if (IsFeared) { DoFlee(); return; }
+		if (_wasFeared)
+		{
+			_wasFeared = false;
+			_navAgent.speed = enemyData.moveSpeed;
+			_attackTimer = 0f;
+			TransitionToState(EnemyState.Idle);
 		}
 		UpdateWindUp();
 		UpdateAnimSpeed();
@@ -261,6 +280,7 @@ public class EnemyBase : MonoBehaviour
 	private void HandleDamaged(DamageInfo info)
 	{
 		AnimTrigger("Hit");
+		if (info.causesFear && fearHitsToFlee > 0) RegisterFear(info.attackerReference);
 		// Only a true Heavy hit staggers. Light never does, and Attachment never does (it hits every second).
 		if (info.attackType == AttackType.Heavy && info.interruptSeconds > 0f) Interrupt(info.interruptSeconds);
 		if (info.attackerReference == null) return;
@@ -390,6 +410,40 @@ public class EnemyBase : MonoBehaviour
 
 	public bool IsStunned => Time.time < _stunnedUntil;
 	public bool IsInterrupted => Time.time < _interruptedUntil;
+
+	public event System.Action<EnemyBase> OnFeared;
+	public bool IsFeared => Time.time < _fearUntil;
+
+	private void RegisterFear(Transform from)
+	{
+		if (currentState == EnemyState.Dead || IsFeared) return;
+		if (_fearHits == 0 || Time.time - _fearFirst > fearWindow) { _fearHits = 0; _fearFirst = Time.time; }
+		_fearHits++;
+		if (_fearHits < fearHitsToFlee) return;
+		_fearHits = 0;
+		_fearUntil = Time.time + fearDuration;
+		_wasFeared = true;
+		_fleeFrom = from != null ? from.position : transform.position - transform.forward;
+		_telegraphTimer = -1f;
+		EndWindUp();
+		EndGlow();
+		ReleasePoint();
+		if (OnFeared != null) OnFeared(this);
+		if (CombatDebug.Enabled) Debug.Log($"[Fear] {name} is fleeing for {fearDuration}s");
+	}
+
+	private void DoFlee()
+	{
+		if (!_navAgent.isOnNavMesh) return;
+		Vector3 away = transform.position - _fleeFrom;
+		away.y = 0f;
+		if (away.sqrMagnitude < 0.01f) away = -transform.forward;
+		Vector3 dest = transform.position + away.normalized * 8f;
+		if (NavMesh.SamplePosition(dest, out NavMeshHit h, 6f, NavMesh.AllAreas)) dest = h.position;
+		_navAgent.isStopped = false;
+		_navAgent.speed = enemyData.moveSpeed * 1.4f;
+		_navAgent.SetDestination(dest);
+	}
 
 	public void Interrupt(float seconds)
 	{

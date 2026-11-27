@@ -82,6 +82,7 @@ public class UnitAgent : MonoBehaviour
 	public PickupItem CarriedPickup { get; set; }
 
 	public static bool TestConcealMelee;
+	public static bool TestFearRanged;
 	public bool IsConcealed { get; private set; }
 	private GameObject _concealMarker;
 

@@ -12,6 +12,8 @@ public struct DamageInfo
 
 	public float interruptSeconds;
 
+	public bool causesFear;
+
 	// Attachment is classified as a heavy interaction
 	public bool IsHeavy => attackType == AttackType.Heavy || attackType == AttackType.Attachment;
 }
